@@ -34,7 +34,7 @@ server:
     whitelabel:
       enabled: true
     include-stacktrace: always
-  address: localhost
+  address: 0.0.0.0
   port: ${PORT:8080}
 logging:
   pattern:
@@ -59,4 +59,4 @@ logging:
           EmailSenderService: INFO
 external:
   server:
-    address: http://localhost:8080 # Do not include trailing slash
+    address: http://0.0.0.0:8080 # Do not include trailing slash

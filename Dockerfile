@@ -10,8 +10,8 @@ WORKDIR /tmp
 # Clone the repository and build the application
 RUN git clone https://github.com/emad-hussain/htmx-demo.git && \
     cd htmx-demo && \
-    sed -i 's/localhost/0.0.0.0/g' src/main/resources/application.yaml && \
-    sed -i 's/localhost/0.0.0.0/g' src/main/resources/application-h2.yaml && \
+ #  sed -i 's/localhost/0.0.0.0/g' src/main/resources/application.yaml && \
+ #  sed -i 's/localhost/0.0.0.0/g' src/main/resources/application-h2.yaml && \
     mvn clean package
 
 # Expose application port
