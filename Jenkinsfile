@@ -26,6 +26,15 @@ pipeline {
                 sh 'docker run -d -p 8090:8080 --name $CONTAINER_NAME $IMAGE_NAME'
             }
         }
+        stage('Login to DOCR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'DOCR_CREDENTIALS', usernameVariable: 'DOCR_USER', passwordVariable: 'DOCR_PASS')]) {
+                    sh """
+                        echo \$DOCR_PASS | docker login ${REGISTRY} -u \$DOCR_USER --password-stdin
+                    """
+                }
+            }
+        }
 
         stage('Tag and Push to DOCR') {
             steps {
