@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "htmx-demo"
         CONTAINER_NAME = "htmx-container"
+        REGISTRY = "registry.digitalocean.com/kube-app-registry"
     }
 
     stages {
