@@ -26,5 +26,12 @@ pipeline {
                 sh 'docker run -d -p 8090:8080 --name $CONTAINER_NAME $IMAGE_NAME'
             }
         }
+
+        stage('Tag and Push to DOCR') {
+            steps {
+                sh "docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}"
+                sh "docker push ${REGISTRY}/${IMAGE_NAME}"
+            }
+        }
     }
 }
