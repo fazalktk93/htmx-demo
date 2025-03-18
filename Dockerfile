@@ -14,7 +14,7 @@ COPY target/htmx-demo.jar /app/app.jar
 EXPOSE 8080
 
 # Set working directory to the built app
-WORKDIR /tmp/htmx-demo
+#WORKDIR /tmp/htmx-demo
 
 # Command to run the Spring Boot application
 CMD ["java", "-jar", "/app/app.jar"]
