@@ -1,4 +1,4 @@
-# Use a lightweight Maven with JDK 1
+# Use a lightweight Alpine
 FROM alpine:latest
 
 #update dependecies
@@ -12,9 +12,6 @@ COPY target/htmx-demo.jar /app/app.jar
 
 # Expose application port
 EXPOSE 8080
-
-# Set working directory to the built app
-#WORKDIR /tmp/htmx-demo
 
 # Command to run the Spring Boot application
 CMD ["java", "-jar", "/app/app.jar"]
