@@ -11,14 +11,7 @@ pipeline {
         SONAR_PROJECT_KEY = "htmx-project"
     }
 
-    stages {
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main', url: 'https://github.com/emad-hussain/htmx-demo.git'
-            }
-        }
-
-        stage('SonarQube Analysis') {
+         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
