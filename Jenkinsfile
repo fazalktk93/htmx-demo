@@ -65,12 +65,25 @@ pipeline {
                 '''
             }
         }
+        stage('Setup Kubernetes Secret') {
+              steps {
+                    script {
+                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
 
-        stage('Apply Kubernetes Secret') {
-            steps {
-                sh 'kubectl apply -f $SECRET_FILE'
+                           if (!secretExists) {
+                            sh '''
+                              kubectl create secret docker-registry do-registry-secret \
+                              --docker-server=registry.digitalocean.com \
+                              --docker-username=${DOCR_USERNAME} \
+                              --docker-password=${DOCR_ACCESS_TOKEN} \
+                              --namespace=default
+                            '''
+                    } else {
+                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
             }
         }
+    }
+}
 
         stage('Deploy to Kubernetes') {
             steps {
