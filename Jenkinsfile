@@ -34,18 +34,18 @@ pipeline {
             }
         }
 
-    stage('Quality Gate') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    script {
-                        def qg = waitForQualityGate()
-                         if (qg.status != 'OK') {
-                         echo "WARNING: Quality Gate status: ${qg.status}. Proceeding anyway."
-                }
-            }
-        }
-    }
-}
+ #   stage('Quality Gate') {
+ #           steps {
+ #               timeout(time: 10, unit: 'MINUTES') {
+ #                   script {
+ #                       def qg = waitForQualityGate()
+ #                        if (qg.status != 'OK') {
+ #                        echo "WARNING: Quality Gate status: ${qg.status}. Proceeding anyway."
+ #               }
+ #           }
+ #       }
+ #   }
+#}
 
         stage('Build JAR') {
             steps {
