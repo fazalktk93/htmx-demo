@@ -7,6 +7,8 @@ pipeline {
         DEPLOYMENT_FILE = "deployment.yaml"
         SECRET_FILE = "do-registry-secret.yaml"
         DO_CLUSTER = "k8s-htmx"
+        SONAR_HOST_URL = "http://147.182.253.185:9000"
+        SONAR_PROJECT_KEY = "htmx-project"
     }
 
     stages {
@@ -16,11 +18,34 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('SonarQube Analysis') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                        -Dsonar.host.url=$SONAR_HOST_URL \
+                        -Dsonar.token=$SONAR_TOKEN \
+                        -DskipTests
+                    '''
+                }
             }
         }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
 
         stage('Login to DigitalOcean') {
             steps {
@@ -34,38 +59,31 @@ pipeline {
             }
         }
 
-        stage('Tag and Push to DOCR') {
+        stage('Build & Push Docker Image') {
+            when {
+                changeset "src/**/*.java"
+            }
             steps {
-                sh "docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:latest"
-                sh "docker push ${REGISTRY}/${IMAGE_NAME}:latest"
+                sh '''
+                    docker build -t ${IMAGE_NAME} .
+                    docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:latest
+                    docker push ${REGISTRY}/${IMAGE_NAME}:latest
+                '''
             }
         }
 
-        stage('Create Kubernetes Secret') {
+        stage('Apply Kubernetes Secret') {
             steps {
-                withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        kubectl create secret docker-registry do-registry-secret \
-                            --docker-server=registry.digitalocean.com \
-                            --docker-username=unused \
-                            --docker-password=$DO_TOKEN \
-                            --docker-email=unused \
-                            --dry-run=client -o yaml | kubectl apply -f -
-                    '''
-                }
+                sh 'kubectl apply -f $SECRET_FILE'
             }
         }
-
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
-                    sh '''
-                        export KUBECONFIG=/var/lib/jenkins/.kube/config
-                        kubectl get nodes
-                        kubectl apply -f deployment.yaml
-                    '''
-                }
+                sh '''
+                    kubectl get nodes
+                    kubectl apply -f $DEPLOYMENT_FILE
+                '''
             }
         }
     }
