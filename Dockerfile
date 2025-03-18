@@ -1,18 +1,14 @@
+# Use a lightweight Maven with JDK 1
 FROM alpine:latest
 
-# Install required dependencies
-RUN apk update && \
-    apk add --no-cache openjdk17 maven git
+#update dependecies
+RUN apk update && apk add --no-cache openjdk17
 
 # Set working directory
 WORKDIR /tmp
 
-# Clone the repository and build the application
-RUN git clone https://github.com/emad-hussain/htmx-demo.git && \
-    cd htmx-demo && \
- #  sed -i 's/localhost/0.0.0.0/g' src/main/resources/application.yaml && \
- #  sed -i 's/localhost/0.0.0.0/g' src/main/resources/application-h2.yaml && \
-    mvn clean package
+# Copy the built JAR file from the host machine into the container
+COPY target/htmx-demo.jar /app/app.jar
 
 # Expose application port
 EXPOSE 8080
@@ -21,4 +17,4 @@ EXPOSE 8080
 WORKDIR /tmp/htmx-demo
 
 # Command to run the Spring Boot application
-CMD ["mvn", "spring-boot:run"]
+CMD ["java", "-jar", "/app/app.jar"]

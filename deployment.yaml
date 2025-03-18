@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: htmx-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: htmx-demo
+  template:
+    metadata:
+      labels:
+        app: htmx-demo
+    spec:
+      containers:
+        - name: htmx-demo
+          image: registry.digitalocean.com/kube-app-registry/htmx-demo:latest
+          ports:
+            - containerPort: 8080
+      imagePullSecrets:
+        - name: do-registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: htmx-demo-service
+spec:
+  selector:
+    app: htmx-demo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

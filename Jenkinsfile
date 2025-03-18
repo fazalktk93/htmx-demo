@@ -3,8 +3,10 @@ pipeline {
     
     environment {
         IMAGE_NAME = "htmx-demo"
-        CONTAINER_NAME = "htmx-container"
         REGISTRY = "registry.digitalocean.com/kube-app-registry"
+        DEPLOYMENT_FILE = "deployment.yaml"
+        SECRET_FILE = "do-registry-secret.yaml"
+        DO_CLUSTER = "k8s-htmx"
     }
 
     stages {
@@ -20,27 +22,50 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Login to DigitalOcean') {
             steps {
-                sh 'docker stop $CONTAINER_NAME || true'
-                sh 'docker rm $CONTAINER_NAME || true'
-                sh 'docker run -d -p 8090:8080 --name $CONTAINER_NAME $IMAGE_NAME'
-            }
-        }
-        stage('Login to DOCR') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'DOCR_CREDENTIALS', usernameVariable: 'DOCR_USER', passwordVariable: 'DOCR_PASS')]) {
-                    sh """
-                        echo \$DOCR_PASS | docker login ${REGISTRY} -u \$DOCR_USER --password-stdin
-                    """
+                withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
+                    sh '''
+                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                        doctl auth init --access-token $DO_TOKEN
+                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                    '''
                 }
             }
         }
 
         stage('Tag and Push to DOCR') {
             steps {
-                sh "docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}"
-                sh "docker push ${REGISTRY}/${IMAGE_NAME}"
+                sh "docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:latest"
+                sh "docker push ${REGISTRY}/${IMAGE_NAME}:latest"
+            }
+        }
+
+        stage('Create Kubernetes Secret') {
+            steps {
+                withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
+                    sh '''
+                        kubectl create secret docker-registry do-registry-secret \
+                            --docker-server=registry.digitalocean.com \
+                            --docker-username=unused \
+                            --docker-password=$DO_TOKEN \
+                            --docker-email=unused \
+                            --dry-run=client -o yaml | kubectl apply -f -
+                    '''
+                }
+            }
+        }
+
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'KUBECONFIG_FILE', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        export KUBECONFIG=/var/lib/jenkins/.kube/config
+                        kubectl get nodes
+                        kubectl apply -f deployment.yaml
+                    '''
+                }
             }
         }
     }
