@@ -11,7 +11,10 @@ pipeline {
         SONAR_PROJECT_KEY = "htmx-project"
     }
 
-         stage('SonarQube Analysis') {
+    stages {
+
+
+        stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
