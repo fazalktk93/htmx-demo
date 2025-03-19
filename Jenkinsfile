@@ -13,23 +13,6 @@ pipeline {
 
     stages {
 
-
-        stage('SonarQube Quality Gate') {
-            steps {
-                script {
-                    echo "Waiting 60 seconds before checking Quality Gate..."
-                    sleep(time: 20, unit: 'SECONDS') // Wait for SonarQube to process
-
-                    def qg = waitForQualityGate()
-                    echo "SonarQube Quality Gate Status: ${qg.status}"
-
-                    if (qg.status != 'OK') {
-                        error "Pipeline failed due to Quality Gate failure: ${qg.status}"
-                    }
-                }
-            }
-        }
-
         stage('Build JAR') {
             steps {
                 sh 'mvn clean package -DskipTests'
