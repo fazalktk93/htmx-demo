@@ -2,8 +2,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: htmx-demo
+  labels:
+    app: htmx-demo
 spec:
-  replicas: 2
+  replicas: 3  # Adjust based on your scaling needs
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: htmx-demo
@@ -14,11 +21,33 @@ spec:
     spec:
       containers:
         - name: htmx-demo
-          image: registry.digitalocean.com/kube-app-registry/htmx-demo:latest
+          image: registry.digitalocean.com/your-docr-repo/htmx-demo:latest  # Update with your DOCR image
           ports:
             - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
       imagePullSecrets:
-        - name: do-registry-secret
+        - name: do-registry-secret  # Ensure this secret exists
 ---
 apiVersion: v1
 kind: Service
@@ -31,4 +60,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
-  type: LoadBalancer
+  type: LoadBalancer  # Change to ClusterIP if using an Ingress
