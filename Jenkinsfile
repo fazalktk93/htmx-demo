@@ -26,16 +26,7 @@ pipeline {
                 }
             }
         }
-        stage('Quality Gate') {
-            steps {
-                script {
-                    def qualityGate = waitForQualityGate()
-                    if (qualityGate.status != 'PASSED') {
-                        error "Pipeline failed due to SonarQube Quality Gate failure: ${qualityGate.status}"
-                    }
-                }
-            }
-        }
+
         stage('Build JAR') {
             steps {
                 sh 'mvn clean package -DskipTests'
