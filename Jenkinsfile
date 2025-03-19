@@ -14,17 +14,14 @@ pipeline {
     stages {
 
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube Quality Gate') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                            mvn clean verify sonar:sonar \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.token=${SONAR_TOKEN} \
-                            -DskipTests
-                        '''
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Pipeline failed due to Quality Gate failure: ${qg.status}"
+                        }
                     }
                 }
             }
