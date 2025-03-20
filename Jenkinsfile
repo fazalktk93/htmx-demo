@@ -110,11 +110,9 @@ pipeline {
 
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
-            when {
                 changeset "src/**/*.java"
             }
+
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME} .
