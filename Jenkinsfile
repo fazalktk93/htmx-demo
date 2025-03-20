@@ -10,32 +10,34 @@ pipeline {
         SONAR_HOST_URL = "http://147.182.253.185:9000"
         SONAR_PROJECT_KEY = "htmx-project"
         VERSION_FILE = "version.txt"
+        GITHUB_CREDENTIALS_ID = "github-push"
     }
 
     stages {
 
-
         stage('Update Version') {
             steps {
                 script {
-                    // Set Git user
-                    sh 'git config --global user.email "fazalktk93@gmail.com"'
-                    sh 'git config --global user.name "fazal khan"'
+                    def versionFile = env.VERSION_FILE
+                    def newVersion = "1.0" // Default if file doesn't exist
 
-                    // Check for changes in the repo
-                    def changes = sh(script: 'git diff --name-only HEAD~1', returnStdout: true).trim()
-                    if (changes) {
-                        def versionFile = 'version.txt'
-                        if (fileExists(versionFile)) {
-                            def version = sh(script: "cat ${versionFile}", returnStdout: true).trim()
-                            def newVersion = version.tokenize('.')[0] + "." + (version.tokenize('.')[1].toInteger() + 1)
-                            sh "echo ${newVersion} > ${versionFile}"
+                    if (fileExists(versionFile)) {
+                        def versionParts = readFile(versionFile).trim().tokenize('.')
+                        versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
+                        newVersion = versionParts.join('.')
+                    }
 
-                            // Commit and push changes
-                            sh 'git add version.txt'
-                            sh 'git commit -m "Bump version to ${newVersion}"'
-                            sh 'git push origin main'
-                        }
+                    writeFile(file: versionFile, text: newVersion)
+                    echo "Version updated to: ${newVersion}"
+
+                    withCredentials([string(credentialsId: 'github-push', variable: 'GITHUB_TOKEN')]) {
+                        sh '''
+                            git config user.email "jenkins@example.com"
+                            git config user.name "Jenkins CI"
+                            git add ''' + versionFile + '''
+                            git commit -m "Bump version to ''' + newVersion + '''" || true
+                            git push origin HEAD:main || echo "Push failed, but continuing..."
+                        '''
                     }
                 }
             }
