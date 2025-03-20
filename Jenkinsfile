@@ -1,15 +1,25 @@
 pipeline {
     agent any
     
+parameters {
+        string(name: 'IMAGE_NAME', description: 'Docker Image Name')
+        string(name: 'REGISTRY', description: 'Docker Registry')
+        string(name: 'DO_CLUSTER', description: 'DigitalOcean Kubernetes Cluster')
+        string(name: 'SONAR_HOST_URL', description: 'SonarQube Host URL')
+        string(name: 'SONAR_PROJECT_KEY', description: 'SonarQube Project Key')
+        string(name: 'VERSION_FILE', description: 'File containing the version')
+        string(name: 'GITHUB_CREDENTIALS_ID', description: 'GitHub Credentials ID')
+    }
+
     environment {
-        IMAGE_NAME = "htmx-demo"
-        REGISTRY = "registry.digitalocean.com/kube-app-registry"
-        DEPLOYMENT_FILE = "deployment.yaml"
-        DO_CLUSTER = "k8s-htmx"
-        SONAR_HOST_URL = "http://147.182.253.185:9000"
-        SONAR_PROJECT_KEY = "htmx-project"
-        VERSION_FILE = "version.txt"
-        GITHUB_CREDENTIALS_ID = "github-push"
+        IMAGE_NAME = "${params.IMAGE_NAME}"
+        REGISTRY = "${params.REGISTRY}"
+        DEPLOYMENT_FILE = "${params.DEPLOYMENT_FILE}"
+        DO_CLUSTER = "${params.DO_CLUSTER}"
+        SONAR_HOST_URL = "${params.SONAR_HOST_URL}"
+        SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
+        VERSION_FILE = "${params.VERSION_FILE}"
+        GITHUB_CREDENTIALS_ID = "${params.GITHUB_CREDENTIALS_ID}"
     }
 
     stages {
