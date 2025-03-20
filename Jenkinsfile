@@ -62,8 +62,6 @@ parameters {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                            chmod -R 777 target || true
-                            rm -rf target || true
                             mvn clean verify sonar:sonar \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
@@ -73,6 +71,16 @@ parameters {
                 }
             }
         }
+
+        stage('Run Tests') {
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+            steps {
+                sh 'mvn test' //  Running unit tests
+            }
+        }
+
 
         stage('SonarQube Quality Gate') {
 
@@ -92,15 +100,6 @@ parameters {
                         error "Pipeline failed due to Quality Gate failure: ${qg.status}"
                     }
                 }
-            }
-        }
-
-        stage('Run Tests') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-            steps {
-                sh 'mvn test' //  Running unit tests
             }
         }
 
