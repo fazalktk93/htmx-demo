@@ -7,18 +7,15 @@ parameters {
         string(name: 'DO_CLUSTER', description: 'DigitalOcean Kubernetes Cluster')
         string(name: 'SONAR_HOST_URL', description: 'SonarQube Host URL')
         string(name: 'SONAR_PROJECT_KEY', description: 'SonarQube Project Key')
-        string(name: 'GITHUB_CREDENTIALS_ID', description: 'GitHub Credentials ID')
     }
 
     environment {
         IMAGE_NAME = "${params.IMAGE_NAME}"
         REGISTRY = "${params.REGISTRY}"
-        DEPLOYMENT_FILE = "${params.DEPLOYMENT_FILE}"
         DO_CLUSTER = "${params.DO_CLUSTER}"
         SONAR_HOST_URL = "${params.SONAR_HOST_URL}"
         SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
-        VERSION_FILE = "${params.VERSION_FILE}"
-        GITHUB_CREDENTIALS_ID = "${params.GITHUB_CREDENTIALS_ID}"
+        GITHUB_CREDENTIALS_ID = "github-push"
         VERSION_FILE = "version.txt"
     }
 
@@ -131,30 +128,34 @@ parameters {
                 '''
             }
         }
+        
         stage('Setup Kubernetes Secret') {
-
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
 
-              steps {
-                    script {
-                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
+            steps {
+                script {
+                    def secretExists = sh(
+                        script: "kubectl get secret do-registry-secret --namespace=default || echo 'notfound'",
+                        returnStdout: true
+                    ).trim()
 
-                           if (!secretExists) {
-                            sh '''
-                              kubectl create secret docker-registry do-registry-secret \
-                              --docker-server=registry.digitalocean.com \
-                              --docker-username=${DOCR_USERNAME} \
-                              --docker-password=${DOCR_ACCESS_TOKEN} \
-                              --namespace=default
-                            '''
+                    if (secretExists.contains('do-registry-secret')) {
+                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
                     } else {
-                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
+                        echo "Creating Kubernetes secret 'do-registry-secret'..."
+                        sh '''
+                            kubectl create secret docker-registry do-registry-secret \
+                            --docker-server=registry.digitalocean.com \
+                            --docker-username=${DOCR_USERNAME} \
+                            --docker-password=${DOCR_ACCESS_TOKEN} \
+                            --namespace=default
+                        '''
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Deploy to Kubernetes') {
 
