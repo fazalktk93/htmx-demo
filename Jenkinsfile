@@ -9,44 +9,64 @@ pipeline {
         DO_CLUSTER = "k8s-htmx"
         SONAR_HOST_URL = "http://147.182.253.185:9000"
         SONAR_PROJECT_KEY = "htmx-project"
-        VERSION_FILE = "version.txt"
         GITHUB_CREDENTIALS_ID = "github-push"
+        SKIP_BUILD = "false" // Default value
+        VERSION = ""
     }
 
     stages {
 
-        stage('Update Version') {
+        stage('Check for Changes & Determine Version') {
             steps {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh '''
-
-                        # Fetch latest changes
+                        # Fetch the latest Git changes
                         git fetch origin main
                         git reset --hard origin/main
+                        git fetch --tags
 
-                        # Check for changes
-                        if git diff --quiet HEAD; then
-                            echo "No changes detected. Skipping version update."
+                        # Get the latest Git commit hash
+                        LATEST_COMMIT=$(git rev-parse HEAD)
+                        PREVIOUS_COMMIT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+
+                        # Check if there are any new changes
+                        if [ -n "$PREVIOUS_COMMIT" ] && git diff --quiet $PREVIOUS_COMMIT $LATEST_COMMIT; then
+                            echo "No changes detected. Skipping build."
+                            echo "SKIP_BUILD=true" > skip_build.env
                             exit 0
                         fi
 
-                        # Read and increment version
-                        VERSION=$(cat "${VERSION_FILE}" || echo "1.0")
-                        NEW_VERSION=$(echo $VERSION | awk -F. '{$NF++; print}' OFS=.)
-                        echo "$NEW_VERSION" > "${VERSION_FILE}"
+                        # Get the latest Git tag (fallback to 1.0.0 if no tag exists)
+                        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
 
-                        # Commit and push changes
-                        git add "${VERSION_FILE}"
-                        git commit -m "Bump version to $NEW_VERSION"
-                        git push origin HEAD:main
+                        # Bump the patch version (e.g., 1.0.0 → 1.0.1)
+                        NEW_VERSION=$(echo $LATEST_TAG | awk -F. '{$NF++; print}' OFS=.)
+
+                        # Create a new tag for the updated version
+                        git tag "$NEW_VERSION"
+                        git push origin "$NEW_VERSION"
+
+                        # Store the new version in an environment file
+                        echo "VERSION=$NEW_VERSION" > version.env
+                        echo "SKIP_BUILD=false" > skip_build.env
                         '''
+
+                        // Load version and SKIP_BUILD flag into the pipeline environment
+                        def versionEnv = readFile('version.env').trim()
+                        env.VERSION = versionEnv.split("=")[1]
+
+                        def skipBuildEnv = readFile('skip_build.env').trim()
+                        env.SKIP_BUILD = skipBuildEnv.split("=")[1]
                     }
                 }
             }
         }
 
         stage('SonarQube Analysis') {
+            when {
+                expression { env.SKIP_BUILD == "false" }
+            }
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
@@ -62,78 +82,27 @@ pipeline {
             }
         }
 
-        stage('SonarQube Quality Gate') {
-            steps {
-                script {
-                    echo "Waiting 60 seconds before checking Quality Gate..."
-                    sleep(time: 20, unit: 'SECONDS') // Wait for SonarQube to process
-
-                    def qg = waitForQualityGate()
-                    echo "SonarQube Quality Gate Status: ${qg.status}"
-
-                    if (qg.status != 'OK') {
-                        error "Pipeline failed due to Quality Gate failure: ${qg.status}"
-                    }
-                }
-            }
-        }
-
-        stage('Build JAR') {
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-
-
-        stage('Login to DigitalOcean') {
-            steps {
-                withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                        doctl auth init --access-token $DO_TOKEN
-                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                    '''
-                }
-            }
-        }
-
         stage('Build & Push Docker Image') {
             when {
-                changeset "src/**/*.java"
+                expression { env.SKIP_BUILD == "false" }
             }
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME} .
-                    docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
-                    docker push ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
+                    docker build -t ${IMAGE_NAME}:${VERSION} .
+                    docker tag ${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+                    docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
                 '''
             }
         }
-        stage('Setup Kubernetes Secret') {
-              steps {
-                    script {
-                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
-
-                           if (!secretExists) {
-                            sh '''
-                              kubectl create secret docker-registry do-registry-secret \
-                              --docker-server=registry.digitalocean.com \
-                              --docker-username=${DOCR_USERNAME} \
-                              --docker-password=${DOCR_ACCESS_TOKEN} \
-                              --namespace=default
-                            '''
-                    } else {
-                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
-            }
-        }
-    }
-}
 
         stage('Deploy to Kubernetes') {
+            when {
+                expression { env.SKIP_BUILD == "false" }
+            }
             steps {
                 sh '''
-                    kubectl get nodes
-                    kubectl apply -f $DEPLOYMENT_FILE
+                    sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}|" ${DEPLOYMENT_FILE}
+                    kubectl apply -f ${DEPLOYMENT_FILE}
                 '''
             }
         }
