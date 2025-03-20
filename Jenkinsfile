@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     def versionFile = env.VERSION_FILE
-                    def newVersion = "1.0" // Default if file doesn't exist
+                    def newVersion = "1.0"
 
                     if (fileExists(versionFile)) {
                         def versionParts = readFile(versionFile).trim().tokenize('.')
@@ -32,17 +32,14 @@ pipeline {
 
                     withCredentials([string(credentialsId: 'github-push', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins CI"
                             git add ''' + versionFile + '''
                             git commit -m "Bump version to ''' + newVersion + '''" || true
-                            git push origin HEAD:main || echo "Push failed, but continuing..."
+                            git push origin HEAD:main
                         '''
                     }
                 }
             }
         }
-
 
         stage('SonarQube Analysis') {
             steps {
