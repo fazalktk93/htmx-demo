@@ -7,7 +7,6 @@ parameters {
         string(name: 'DO_CLUSTER', description: 'DigitalOcean Kubernetes Cluster')
         string(name: 'SONAR_HOST_URL', description: 'SonarQube Host URL')
         string(name: 'SONAR_PROJECT_KEY', description: 'SonarQube Project Key')
-        string(name: 'VERSION_FILE', description: 'File containing the version')
         string(name: 'GITHUB_CREDENTIALS_ID', description: 'GitHub Credentials ID')
     }
 
@@ -20,6 +19,7 @@ parameters {
         SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
         VERSION_FILE = "${params.VERSION_FILE}"
         GITHUB_CREDENTIALS_ID = "${params.GITHUB_CREDENTIALS_ID}"
+        VERSION_FILE = "version.txt"
     }
 
     stages {
