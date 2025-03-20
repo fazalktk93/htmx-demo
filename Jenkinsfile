@@ -20,13 +20,12 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh '''
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins CI"
+
                         VERSION=$(cat "${VERSION_FILE}" || echo "1.0")
                         NEW_VERSION=$(echo $VERSION | awk -F. '{$NF++; print}' OFS=.)
-
                         echo "$NEW_VERSION" > "${VERSION_FILE}"
-
-                        git config user.email "fazalktk93@gmail.com"
-                        git config user.name "fazalktk93"
 
                         git add "${VERSION_FILE}"
                         git commit -m "Bump version to $NEW_VERSION"
