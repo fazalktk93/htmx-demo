@@ -28,20 +28,19 @@ parameters {
                         def changeDetected = sh(script: '''
                             git fetch origin main
                             git reset --hard origin/main
-
+                            
                             # Check if version.txt has changed
                             if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
                                 echo "false"
                             else
                                 echo "true"
                             fi
-                        ''', returnStdout: true).trim()
+                        ''', returnStdout: true).trim().replaceAll("\\r|\\n", "") // Remove newlines
 
-                        // Update env variable inside script block
+                        // Fix: Explicitly set and echo the correct value
                         env.VERSION_CHANGED = changeDetected
                         echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
 
-                        // Exit if no change detected
                         if (env.VERSION_CHANGED == "false") {
                             echo "No changes detected in version.txt. Skipping pipeline."
                             currentBuild.result = 'SUCCESS'
