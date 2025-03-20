@@ -18,25 +18,20 @@ pipeline {
         stage('Update Version') {
             steps {
                 script {
-                    def versionFile = env.VERSION_FILE
-                    def newVersion = "1.0"
+                    def versionFile = env.VERSION_FILE  // Use the environment variable
+                    sh 'git fetch --tags' // Ensure the latest tags are available
+                    
+                    def currentVersion = sh(script: "cat ${versionFile}", returnStdout: true).trim()
+                    def versionParts = currentVersion.tokenize('.')
+                    versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
+                    def newVersion = versionParts.join('.')
 
-                    if (fileExists(versionFile)) {
-                        def versionParts = readFile(versionFile).trim().tokenize('.')
-                        versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
-                        newVersion = versionParts.join('.')
-                    }
-
-                    writeFile(file: versionFile, text: newVersion)
-                    echo "Version updated to: ${newVersion}"
-
-                    withCredentials([string(credentialsId: 'github-push', variable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            git add ''' + versionFile + '''
-                            git commit -m "Bump version to ''' + newVersion + '''" || true
-                            git push origin HEAD:main
-                        '''
-                    }
+                    sh """
+                        echo ${newVersion} > ${versionFile}
+                        git add ${versionFile}
+                        git commit -m 'Bump version to ${newVersion}'
+                        git push origin HEAD:main
+                    """
                 }
             }
         }
