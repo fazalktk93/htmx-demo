@@ -123,6 +123,15 @@ parameters {
             }
         }
 
+        stage('Read Version from File') {
+            steps {
+                script {
+                    NEW_VERSION = sh(script: 'cat version.txt', returnStdout: true).trim()
+                    echo "Extracted version: ${NEW_VERSION}"
+                }
+            }
+        }
+
         stage('Build & Push Docker Image') {
 
             when {
