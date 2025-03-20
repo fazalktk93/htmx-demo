@@ -21,7 +21,6 @@ pipeline {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh '''
                         git config user.email "fazalktk93@gmail.com"
-                        git config user.name "fazalktk93"
 
                         # Fetch latest changes
                         git fetch origin main
