@@ -66,7 +66,6 @@ parameters {
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.token=${SONAR_TOKEN} \
-                            -DskipTests
                         '''
                     }
                 }
@@ -94,6 +93,15 @@ parameters {
             }
         }
 
+        stage('Run Tests') {
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+            steps {
+                sh 'mvn test' //  Running unit tests
+            }
+        }
+
         stage('Build JAR') {
 
             when {
@@ -101,7 +109,7 @@ parameters {
             }
 
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean package'
             }
         }
 
@@ -123,11 +131,11 @@ parameters {
             }
         }
 
-        stage('Read Version from File') {
+        stage('Read Version') {
             steps {
                 script {
                     NEW_VERSION = sh(script: 'cat version.txt', returnStdout: true).trim()
-                    echo "Extracted version: ${NEW_VERSION}"
+                    echo "Version extracted: ${NEW_VERSION}"
                 }
             }
         }
