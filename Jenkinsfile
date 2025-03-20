@@ -9,9 +9,29 @@ pipeline {
         DO_CLUSTER = "k8s-htmx"
         SONAR_HOST_URL = "http://147.182.253.185:9000"
         SONAR_PROJECT_KEY = "htmx-project"
+        VERSION_FILE = "version.txt"
     }
 
     stages {
+
+
+        stage('Update Version') {
+            steps {
+                script {
+                    if (sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()) {
+                        def version = sh(script: "[[ -f ${VERSION_FILE} ]] && cat ${VERSION_FILE} || echo '1.0.0'", returnStdout: true).trim()
+                        def newVersion = version.tokenize('.').with { it[-1] = (it[-1] as int) + 1; it.join('.') }
+                        sh "echo ${newVersion} > ${VERSION_FILE}"
+                        sh "git add ${VERSION_FILE} && git commit -m 'Bump version to ${newVersion}' || true"
+                        sh "git push origin main || true"
+                        env.BUILD_VERSION = newVersion
+                    } else {
+                        env.BUILD_VERSION = sh(script: "cat ${VERSION_FILE}", returnStdout: true).trim()
+                    }
+                }
+            }
+        }
+
 
         stage('SonarQube Analysis') {
             steps {
