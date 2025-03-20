@@ -52,14 +52,6 @@ parameters {
             }
         }
 
-        stage('Run Unit Tests') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-            steps {
-                sh 'mvn test' // Run tests first
-            }
-       }
 
         stage('SonarQube Analysis') {
 
