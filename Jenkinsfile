@@ -30,7 +30,7 @@ parameters {
                             git fetch origin main
                             git reset --hard origin/main
 
-                            # Check if version.txt has changed in the last commit
+                            # Check if version.txt has changed
                             if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
                                 echo "false"
                             else
@@ -38,10 +38,11 @@ parameters {
                             fi
                         ''', returnStdout: true).trim()
 
-                        // Ensure it's explicitly assigned
-                        env.VERSION_CHANGED = changeDetected == "true" ? "true" : "false"
+                        // Update env variable inside script block
+                        env.VERSION_CHANGED = changeDetected
                         echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
 
+                        // Exit if no change detected
                         if (env.VERSION_CHANGED == "false") {
                             echo "No changes detected in version.txt. Skipping pipeline."
                             currentBuild.result = 'SUCCESS'
