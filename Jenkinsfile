@@ -19,20 +19,19 @@ pipeline {
             steps {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
-                        sh """
-                            git pull origin main  # Ensure latest changes
-                            
-                            VERSION=\$(cat ${VERSION_FILE} || echo "1.0")
-                            MAJOR=\$(echo \$VERSION | cut -d. -f1)
-                            MINOR=\$(echo \$VERSION | cut -d. -f2)
-                            NEW_VERSION="\$MAJOR.$((MINOR + 1))"
+                        sh '''
+                        VERSION=$(cat "${VERSION_FILE}" || echo "1.0")
+                        NEW_VERSION=$(echo $VERSION | awk -F. '{$NF++; print}' OFS=.)
 
-                            echo "\$NEW_VERSION" > ${VERSION_FILE}
-                            git add ${VERSION_FILE}
-                            git commit -m "Bump version to \$NEW_VERSION" || echo "No changes to commit"
+                        echo "$NEW_VERSION" > "${VERSION_FILE}"
 
-                            git push origin HEAD:main
-                        """
+                        git config user.email "fazalktk93@gmail.com"
+                        git config user.name "fazalktk93"
+
+                        git add "${VERSION_FILE}"
+                        git commit -m "Bump version to $NEW_VERSION"
+                        git push https://${GIT_PAT}@github.com/fazalktk93/htmx-demo.git HEAD:main
+                        '''
                     }
                 }
             }
