@@ -15,32 +15,27 @@ pipeline {
     stages {
 
 
-        stage('Update Version') { 
-            steps { 
-                script { 
-                    if (sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()) {
-                        
-                        // Read existing version or default to 1.0
-                        def version = sh(script: "[[ -f ${VERSION_FILE} ]] && cat ${VERSION_FILE} || echo '1.0'", returnStdout: true).trim()
+        stage('Update Version') {
+            steps {
+                script {
+                    // Set Git user
+                    sh 'git config --global user.email "your-email@example.com"'
+                    sh 'git config --global user.name "Your Name"'
 
-                        // Split the version (e.g., "1.0" -> ["1", "0"])
-                        def newVersion = version.tokenize('.').with { 
-                            it[-1] = (it[-1] as int) + 1; // Increment minor version (e.g., 1.0 -> 1.1)
-                            it.join('.') 
+                    // Check for changes in the repo
+                    def changes = sh(script: 'git diff --name-only HEAD~1', returnStdout: true).trim()
+                    if (changes) {
+                        def versionFile = 'version.txt'
+                        if (fileExists(versionFile)) {
+                            def version = sh(script: "cat ${versionFile}", returnStdout: true).trim()
+                            def newVersion = version.tokenize('.')[0] + "." + (version.tokenize('.')[1].toInteger() + 1)
+                            sh "echo ${newVersion} > ${versionFile}"
+
+                            // Commit and push changes
+                            sh 'git add version.txt'
+                            sh 'git commit -m "Bump version to ${newVersion}"'
+                            sh 'git push origin main'
                         }
-
-                        // Save the new version
-                        sh "echo ${newVersion} > ${VERSION_FILE}"
-
-                        // Commit and push changes
-                        sh "git add ${VERSION_FILE} && git commit -m 'Bump version to ${newVersion}' || true"
-                        sh "git push origin main || true"
-
-                        // Set version as an environment variable
-                        env.BUILD_VERSION = newVersion
-
-                    } else { 
-                        env.BUILD_VERSION = sh(script: "cat ${VERSION_FILE}", returnStdout: true).trim()
                     }
                 }
             }
