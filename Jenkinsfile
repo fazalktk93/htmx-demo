@@ -23,13 +23,25 @@ pipeline {
                         git config user.email "fazalktk93@gmail.com"
                         git config user.name "fazalktk93"
 
+                        # Fetch latest changes
+                        git fetch origin main
+                        git reset --hard origin/main
+
+                        # Check for changes
+                        if git diff --quiet HEAD; then
+                            echo "No changes detected. Skipping version update."
+                            exit 0
+                        fi
+
+                        # Read and increment version
                         VERSION=$(cat "${VERSION_FILE}" || echo "1.0")
                         NEW_VERSION=$(echo $VERSION | awk -F. '{$NF++; print}' OFS=.)
                         echo "$NEW_VERSION" > "${VERSION_FILE}"
 
+                        # Commit and push changes
                         git add "${VERSION_FILE}"
                         git commit -m "Bump version to $NEW_VERSION"
-                        git push https://${GIT_PAT}@github.com/fazalktk93/htmx-demo.git HEAD:main
+                        git push origin HEAD:main
                         '''
                     }
                 }
