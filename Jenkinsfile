@@ -17,7 +17,7 @@ parameters {
         SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
         GITHUB_CREDENTIALS_ID = "github-push"
         VERSION_FILE = "version.txt"
-        VERSION_CHANGED = "false"
+        VERSION_CHANGED = ""
     }
 
     stages {
