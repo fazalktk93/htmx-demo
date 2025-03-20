@@ -36,6 +36,11 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
@@ -52,6 +57,11 @@ pipeline {
         }
 
         stage('SonarQube Quality Gate') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 script {
                     echo "Waiting 60 seconds before checking Quality Gate..."
@@ -68,6 +78,11 @@ pipeline {
         }
 
         stage('Build JAR') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -75,6 +90,11 @@ pipeline {
 
 
         stage('Login to DigitalOcean') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
                     sh '''
@@ -87,6 +107,11 @@ pipeline {
         }
 
         stage('Build & Push Docker Image') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             when {
                 changeset "src/**/*.java"
             }
@@ -99,6 +124,11 @@ pipeline {
             }
         }
         stage('Setup Kubernetes Secret') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
               steps {
                     script {
                         def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
@@ -119,6 +149,11 @@ pipeline {
 }
 
         stage('Deploy to Kubernetes') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 sh '''
                     kubectl get nodes
