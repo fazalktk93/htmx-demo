@@ -18,20 +18,26 @@ pipeline {
         stage('Update Version') {
             steps {
                 script {
-                    def versionFile = env.VERSION_FILE  // Use the environment variable
-                    sh 'git fetch --tags' // Ensure the latest tags are available
+                    def versionFile = env.VERSION_FILE  // Ensure this is set in Jenkins
+                    sh 'git fetch --tags' // Fetch latest tags
                     
+                    // Read and increment version
                     def currentVersion = sh(script: "cat ${versionFile}", returnStdout: true).trim()
                     def versionParts = currentVersion.tokenize('.')
                     versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
                     def newVersion = versionParts.join('.')
 
+                    // Update version file and commit changes
                     sh """
                         echo ${newVersion} > ${versionFile}
                         git add ${versionFile}
                         git commit -m 'Bump version to ${newVersion}'
-                        git push origin HEAD:main
                     """
+
+                    // Push changes using GitHub PAT stored in Jenkins credentials
+                    withCredentials([string(credentialsId: 'github-push', variable: 'GIT_PAT')]) {
+                        sh 'git push origin HEAD:main'
+                    }
                 }
             }
         }
