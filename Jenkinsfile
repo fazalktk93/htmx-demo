@@ -77,7 +77,7 @@ parameters {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
             steps {
-                sh 'mvn test' //  Running unit tests
+                sh 'mvn verify' //  Running unit tests
             }
         }
 
