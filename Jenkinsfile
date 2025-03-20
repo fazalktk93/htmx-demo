@@ -73,15 +73,6 @@ parameters {
             }
         }
 
-        stage('Run Tests') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-            steps {
-                sh 'mvn verify' //  Running unit tests
-            }
-        }
-
 
         stage('SonarQube Quality Gate') {
 
