@@ -15,17 +15,31 @@ pipeline {
     stages {
 
 
-        stage('Update Version') {
-            steps {
-                script {
+        stage('Update Version') { 
+            steps { 
+                script { 
                     if (sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim()) {
-                        def version = sh(script: "[[ -f ${VERSION_FILE} ]] && cat ${VERSION_FILE} || echo '1.0.0'", returnStdout: true).trim()
-                        def newVersion = version.tokenize('.').with { it[-1] = (it[-1] as int) + 1; it.join('.') }
+                        
+                        // Read existing version or default to 1.0
+                        def version = sh(script: "[[ -f ${VERSION_FILE} ]] && cat ${VERSION_FILE} || echo '1.0'", returnStdout: true).trim()
+
+                        // Split the version (e.g., "1.0" -> ["1", "0"])
+                        def newVersion = version.tokenize('.').with { 
+                            it[-1] = (it[-1] as int) + 1; // Increment minor version (e.g., 1.0 -> 1.1)
+                            it.join('.') 
+                        }
+
+                        // Save the new version
                         sh "echo ${newVersion} > ${VERSION_FILE}"
+
+                        // Commit and push changes
                         sh "git add ${VERSION_FILE} && git commit -m 'Bump version to ${newVersion}' || true"
                         sh "git push origin main || true"
+
+                        // Set version as an environment variable
                         env.BUILD_VERSION = newVersion
-                    } else {
+
+                    } else { 
                         env.BUILD_VERSION = sh(script: "cat ${VERSION_FILE}", returnStdout: true).trim()
                     }
                 }
