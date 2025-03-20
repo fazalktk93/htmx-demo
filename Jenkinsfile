@@ -21,13 +21,13 @@ pipeline {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh """
                             git pull origin main  # Ensure latest changes
-
+                            
                             VERSION=\$(cat ${VERSION_FILE} || echo "1.0")
                             MAJOR=\$(echo \$VERSION | cut -d. -f1)
                             MINOR=\$(echo \$VERSION | cut -d. -f2)
                             NEW_VERSION="\$MAJOR.$((MINOR + 1))"
 
-                            echo \$NEW_VERSION > ${VERSION_FILE}
+                            echo "\$NEW_VERSION" > ${VERSION_FILE}
                             git add ${VERSION_FILE}
                             git commit -m "Bump version to \$NEW_VERSION" || echo "No changes to commit"
 
