@@ -26,8 +26,8 @@ parameters {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         def changeDetected = sh(script: '''
-                            git fetch origin main
-                            git reset --hard origin/main
+                            git fetch origin main > /dev/null 2>&1
+                            git reset --hard origin/main > /dev/null 2>&1
                             
                             # Check if version.txt has changed
                             if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
@@ -35,9 +35,9 @@ parameters {
                             else
                                 echo "true"
                             fi
-                        ''', returnStdout: true).trim().replaceAll("\\r|\\n", "") // Remove newlines
+                        ''', returnStdout: true).trim()
 
-                        // Fix: Explicitly set and echo the correct value
+                        // Ensure env.VERSION_CHANGED is properly set
                         env.VERSION_CHANGED = changeDetected
                         echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
 
