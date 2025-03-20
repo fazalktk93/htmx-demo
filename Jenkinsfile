@@ -19,8 +19,8 @@ pipeline {
             steps {
                 script {
                     // Set Git user
-                    sh 'git config --global user.email "your-email@example.com"'
-                    sh 'git config --global user.name "Your Name"'
+                    sh 'git config --global user.email "fazalktk93@gmail.com"'
+                    sh 'git config --global user.name "fazal khan"'
 
                     // Check for changes in the repo
                     def changes = sh(script: 'git diff --name-only HEAD~1', returnStdout: true).trim()
