@@ -18,25 +18,21 @@ pipeline {
         stage('Update Version') {
             steps {
                 script {
-                    def versionFile = env.VERSION_FILE  // Ensure this is set in Jenkins
-                    sh 'git fetch --tags' // Fetch latest tags
-                    
-                    // Read and increment version
-                    def currentVersion = sh(script: "cat ${versionFile}", returnStdout: true).trim()
-                    def versionParts = currentVersion.tokenize('.')
-                    versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
-                    def newVersion = versionParts.join('.')
+                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
+                        sh """
+                            git pull origin main  # Ensure latest changes
 
-                    // Update version file and commit changes
-                    sh """
-                        echo ${newVersion} > ${versionFile}
-                        git add ${versionFile}
-                        git commit -m 'Bump version to ${newVersion}'
-                    """
+                            VERSION=\$(cat ${VERSION_FILE} || echo "1.0")
+                            MAJOR=\$(echo \$VERSION | cut -d. -f1)
+                            MINOR=\$(echo \$VERSION | cut -d. -f2)
+                            NEW_VERSION="\$MAJOR.$((MINOR + 1))"
 
-                    // Push changes using GitHub PAT stored in Jenkins credentials
-                    withCredentials([string(credentialsId: 'github-push', variable: 'GIT_PAT')]) {
-                        sh 'git push origin HEAD:main'
+                            echo \$NEW_VERSION > ${VERSION_FILE}
+                            git add ${VERSION_FILE}
+                            git commit -m "Bump version to \$NEW_VERSION" || echo "No changes to commit"
+
+                            git push origin HEAD:main
+                        """
                     }
                 }
             }
