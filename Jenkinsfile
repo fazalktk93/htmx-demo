@@ -26,18 +26,27 @@ parameters {
             steps {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
-                        sh '''
-                        git fetch origin main
-                        git reset --hard origin/main
+                        def changeDetected = sh(script: '''
+                            git fetch origin main
+                            git reset --hard origin/main
 
-                        # Check if version.txt has changed in the last commit
-                        if ! git diff --quiet HEAD~1 HEAD -- "${VERSION_FILE}"; then
-                            echo "version.txt changed. Proceeding with pipeline."
-                        else
-                            echo "No changes in version.txt. Skipping pipeline."
-                            exit 0
-                        fi
-                        '''
+                            # Check if version.txt has changed in the last commit
+                            if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
+                                echo "false"
+                            else
+                                echo "true"
+                            fi
+                        ''', returnStdout: true).trim()
+
+                        // Set environment variable based on change detection
+                        env.VERSION_CHANGED = changeDetected
+                        echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
+
+                        if (env.VERSION_CHANGED == "false") {
+                            echo "No changes detected in version.txt. Skipping pipeline."
+                            currentBuild.result = 'SUCCESS'
+                            error("Stopping pipeline as version.txt has not changed.")
+                        }
                     }
                 }
             }
