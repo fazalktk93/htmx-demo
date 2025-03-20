@@ -20,8 +20,8 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh '''
-                        git config user.email "jenkins@example.com"
-                        git config user.name "Jenkins CI"
+                        git config user.email "fazalktk93@gmail.com"
+                        git config user.name "fazalktk93"
 
                         VERSION=$(cat "${VERSION_FILE}" || echo "1.0")
                         NEW_VERSION=$(echo $VERSION | awk -F. '{$NF++; print}' OFS=.)
@@ -94,8 +94,8 @@ pipeline {
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME} .
-                    docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:latest
-                    docker push ${REGISTRY}/${IMAGE_NAME}:latest
+                    docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
+                    docker push ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
                 '''
             }
         }
