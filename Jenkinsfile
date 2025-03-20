@@ -9,7 +9,7 @@ pipeline {
         DO_CLUSTER = "k8s-htmx"
         SONAR_HOST_URL = "http://147.182.253.185:9000"
         SONAR_PROJECT_KEY = "htmx-project"
-        GITHUB_CREDENTIALS_ID = "github-push"
+        GITHUB_CREDENTIALS_ID = "github-push"   // GitHub PAT stored in Jenkins credentials
         SKIP_BUILD = "false" // Default value
         VERSION = ""
     }
@@ -21,38 +21,43 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         sh '''
-                        # Fetch the latest Git changes
+                        # Fetch latest changes and reset
                         git fetch origin main
                         git reset --hard origin/main
                         git fetch --tags
 
-                        # Get the latest Git commit hash
+                        # Get latest commit and previous commit
                         LATEST_COMMIT=$(git rev-parse HEAD)
                         PREVIOUS_COMMIT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
 
-                        # Check if there are any new changes
+                        # Check for changes
                         if [ -n "$PREVIOUS_COMMIT" ] && git diff --quiet $PREVIOUS_COMMIT $LATEST_COMMIT; then
                             echo "No changes detected. Skipping build."
                             echo "SKIP_BUILD=true" > skip_build.env
                             exit 0
                         fi
 
-                        # Get the latest Git tag (fallback to 1.0.0 if no tag exists)
+                        # Get latest tag or fallback to 1.0.0
                         LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
 
-                        # Bump the patch version (e.g., 1.0.0 → 1.0.1)
+                        # Bump patch version (1.0.0 -> 1.0.1)
                         NEW_VERSION=$(echo $LATEST_TAG | awk -F. '{$NF++; print}' OFS=.)
 
-                        # Create a new tag for the updated version
+                        # Configure Git to use PAT for authentication
+                        git config --global user.email "jenkins@yourdomain.com"
+                        git config --global user.name "Jenkins CI"
+                        git remote set-url origin https://${GIT_PAT}@github.com/fazalktk93/htmx-demo.git
+
+                        # Create and push a new tag
                         git tag "$NEW_VERSION"
                         git push origin "$NEW_VERSION"
 
-                        # Store the new version in an environment file
+                        # Save version info
                         echo "VERSION=$NEW_VERSION" > version.env
                         echo "SKIP_BUILD=false" > skip_build.env
                         '''
 
-                        // Load version and SKIP_BUILD flag into the pipeline environment
+                        // Load environment variables
                         def versionEnv = readFile('version.env').trim()
                         env.VERSION = versionEnv.split("=")[1]
 
