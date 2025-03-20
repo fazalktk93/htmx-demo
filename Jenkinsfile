@@ -38,8 +38,8 @@ parameters {
                             fi
                         ''', returnStdout: true).trim()
 
-                        // Set environment variable based on change detection
-                        env.VERSION_CHANGED = changeDetected
+                        // Ensure it's explicitly assigned
+                        env.VERSION_CHANGED = changeDetected == "true" ? "true" : "false"
                         echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
 
                         if (env.VERSION_CHANGED == "false") {
