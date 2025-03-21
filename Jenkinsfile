@@ -52,16 +52,6 @@ parameters {
             }
         }
 
-        stage('Run Unit Tests') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-            steps {
-                sh 'chmod -R 777 target'
-                sh 'mvn test --batch-mode' // Run tests first
-            }
-        }
-
         stage('SonarQube Analysis') {
 
             when {
@@ -112,7 +102,7 @@ parameters {
 
             steps {
 
-                sh 'mvn clean package -DskipTests=true'
+                sh 'mvn clean package --batch-mode'
 
             }
         }
