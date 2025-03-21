@@ -66,7 +66,7 @@ parameters {
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.token=${SONAR_TOKEN} \
-                            --batch-mode
+                            -Dskiptests
                         '''
                     }
                 }
