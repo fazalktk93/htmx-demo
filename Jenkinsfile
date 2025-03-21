@@ -57,6 +57,7 @@ parameters {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
             steps {
+                sh 'chmod -R 777 target'
                 sh 'mvn test --batch-mode' // Run tests first
             }
         }
