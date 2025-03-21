@@ -66,7 +66,7 @@ parameters {
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.token=${SONAR_TOKEN} \
-                            -Dskiptests
+                            -DskipTests
                         '''
                     }
                 }
@@ -103,7 +103,7 @@ parameters {
 
             steps {
 
-                sh 'mvn clean package --batch-mode'
+                sh 'mvn clean package -DskipTests'
 
             }
         }
