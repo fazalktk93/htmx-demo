@@ -129,7 +129,7 @@ parameters {
         stage('Read Version') {
             steps {
                 script {
-                    NEW_VERSION = sh(script: 'cat version.txt', returnStdout: true).trim()
+                    def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
                     echo "Version extracted: ${NEW_VERSION}"
                 }
             }
