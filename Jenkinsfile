@@ -52,6 +52,14 @@ parameters {
             }
         }
 
+        stage('Run Unit Tests') {
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+            steps {
+                sh 'mvn test' // Run tests first
+            }
+        }
 
         stage('SonarQube Analysis') {
 
@@ -66,8 +74,7 @@ parameters {
                             mvn clean verify sonar:sonar \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.token=${SONAR_TOKEN} \
-                            -DskipTests
+                            -Dsonar.token=${SONAR_TOKEN} 
                         '''
                     }
                 }
