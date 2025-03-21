@@ -57,7 +57,7 @@ parameters {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
             steps {
-                sh 'mvn test' // Run tests first
+                sh 'mvn test --batch-mode' // Run tests first
             }
         }
 
