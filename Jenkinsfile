@@ -99,11 +99,23 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                        doctl auth init --access-token $DO_TOKEN
-                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                    '''
+                    script {
+                        def authCheck = sh(script: "doctl account get --format Email --no-header > /dev/null 2>&1; echo $?", returnStdout: true).trim()
+
+                        if (authCheck == "0") {
+                            echo "✅ Already authenticated with DigitalOcean. Skipping authentication."
+                        } else {
+                            echo "🔑 Authenticating with DigitalOcean..."
+                            sh '''
+                                export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                                doctl auth init --access-token $DO_TOKEN
+                            '''
+                        }
+
+                        sh '''
+                            doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                        '''
+                    }
                 }
             }
         }
