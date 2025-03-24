@@ -95,25 +95,28 @@ pipeline {
             }
         }
 
-        stage('Login to DigitalOcean') {
+        stage('Login to DigitalOcean and DOCR') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
                     script {
-                        def authCheck = sh(script: "doctl account get --format Email --no-header > /dev/null 2>&1; echo $?", returnStdout: true).trim()
-
-                        if (authCheck == "0") {
-                            echo "✅ Already authenticated with DigitalOcean. Skipping authentication."
-                        } else {
-                            echo "🔑 Authenticating with DigitalOcean..."
-                            sh '''
-                                export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                                doctl auth init --access-token $DO_TOKEN
-                            '''
-                        }
-
+                        // 1. Authenticate with DigitalOcean (if not already done)
                         sh '''
-                            doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                            export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                            doctl auth init --access-token $DO_TOKEN || true  # Skip if already logged in
+                        '''
+
+                        // 2. Configure Kubernetes access
+                        sh 'doctl kubernetes cluster kubeconfig save $DO_CLUSTER'
+
+                        // 3. Log in to DOCR ONLY if not already logged in
+                        sh '''
+                            if ! grep -q "registry.digitalocean.com" ~/.docker/config.json 2>/dev/null; then
+                                echo "🔒 Logging into DOCR (first time)..."
+                                doctl registry login --expiry-seconds 3600  # 1-hour token
+                            else
+                                echo "✅ Already logged into DOCR. Skipping login."
+                            fi
                         '''
                     }
                 }
