@@ -28,10 +28,10 @@ pipeline {
                     sh 'git reset --hard origin/main'
                     
                     def previousVersion = sh(script: "git show HEAD~1:version.txt || echo '0.0'", returnStdout: true).trim()
-                    def newVersion = sh(script: "cat version.txt", returnStdout: true).trim()
+                    def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
                     
                     echo "Previous Version: ${previousVersion}"
-                    echo "New Version: ${newVersion}"
+                    echo "New Version: ${NEW_VERSION}"
                     
                     def parseVersion = { version ->
                         def parts = version.tokenize('.').collect { it as int }
@@ -39,7 +39,7 @@ pipeline {
                     }
                     
                     def prevVerNum = parseVersion(previousVersion)
-                    def newVerNum = parseVersion(newVersion)
+                    def newVerNum = parseVersion(NEW_VERSION)
                     
                     if (newVerNum > prevVerNum) {
                         echo "Version upgrade detected. Proceeding with the pipeline."
