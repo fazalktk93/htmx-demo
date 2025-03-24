@@ -19,38 +19,38 @@ pipeline {
         DEPLOYMENT_FILE = "deployment.yaml"
     }
 
-    stages {
-
         stage('Check Version Change') {
             steps {
                 script {
+                    // Reset to latest main branch
                     sh 'git fetch origin main'
                     sh 'git reset --hard origin/main'
-                    
+
+                    // Get versions
                     def previousVersion = sh(script: "git show HEAD~1:version.txt || echo '0.0'", returnStdout: true).trim()
-                    def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
+                    def newVersion = sh(script: "cat version.txt", returnStdout: true).trim()
                     
-                    echo "Previous Version: ${previousVersion}"
-                    echo "New Version: ${NEW_VERSION}"
-                    
-                    def parseVersion = { version ->
-                        def parts = version.tokenize('.').collect { it as int }
-                        return parts.size() > 1 ? parts[0] * 100 + parts[1] : parts[0] * 100
+                    // Version comparison logic
+                    def versionChanged = "false"
+                    if (previousVersion != newVersion) {
+                        def (prevMajor, prevMinor) = previousVersion.tokenize('.').collect { it as int }
+                        def (newMajor, newMinor) = newVersion.tokenize('.').collect { it as int }
+                        
+                        if (newMajor > prevMajor || (newMajor == prevMajor && newMinor > prevMinor)) {
+                            versionChanged = "true"
+                            env.NEW_VERSION = newVersion
+                        }
                     }
+
+                    env.VERSION_CHANGED = versionChanged
                     
-                    def prevVerNum = parseVersion(previousVersion)
-                    def newVerNum = parseVersion(NEW_VERSION)
-                    
-                    if (newVerNum > prevVerNum) {
-                        echo "Version upgrade detected. Proceeding with the pipeline."
-                        env.VERSION_CHANGED = "true"
-                        env.NEW_VERSION = newVersion  // Set the NEW_VERSION here
-                    } else {
-                        echo "No version upgrade detected (or version downgrade). Skipping pipeline."
-                        env.VERSION_CHANGED = "false"
-                        currentBuild.result = 'true'
+                    if (env.VERSION_CHANGED == "false") {
+                        echo "No valid version upgrade detected. Current: ${newVersion}, Previous: ${previousVersion}"
+                        currentBuild.result = 'SUCCESS'
                         return
                     }
+                    
+                    echo "Version upgrade validated: ${previousVersion} → ${newVersion}"
                 }
             }
         }
@@ -96,29 +96,61 @@ pipeline {
             }
         }
 
-        stage('Login to DigitalOcean') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
+        stage('Authenticate with DigitalOcean') {
+            when { 
+                environment name: 'VERSION_CHANGED', value: 'true' 
             }
-
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                        doctl auth init --access-token $DO_TOKEN
-                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                    '''
+                    script {
+                        // 1. Authenticate doctl
+                        sh '''
+                            export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                            doctl auth init --access-token $DO_TOKEN 2>/dev/null || true
+                            doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                        '''
+                        
+                        // 2. Smart DOCR login (only when needed)
+                        def dockerAuthCheck = sh(
+                            script: 'docker auth inspect registry.digitalocean.com >/dev/null 2>&1; echo $?',
+                            returnStdout: true
+                        ).trim()
+                        
+                        if (dockerAuthCheck != "0") {
+                            echo "🔒 Authenticating with DOCR..."
+                            sh '''
+                                # Get temporary registry password (valid 1 hour)
+                                DOCR_PASSWORD=$(doctl registry docker-config --no-expiry | \
+                                    jq -r '.auths."registry.digitalocean.com".auth' | \
+                                    base64 -d | cut -d: -f2)
+                                
+                                # Secure login
+                                echo "$DOCR_PASSWORD" | docker login \
+                                    registry.digitalocean.com \
+                                    --username $DO_TOKEN \
+                                    --password-stdin
+                            '''
+                        } else {
+                            echo "✅ Already authenticated with DOCR"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Read Version') {
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
+            steps {
+                script {
+                    def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
+                    env.NEW_VERSION = NEW_VERSION
+                    echo "Version extracted: ${NEW_VERSION}"
                 }
             }
         }
 
         stage('Build & Push Docker Image') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME} .
@@ -127,30 +159,28 @@ pipeline {
                 '''
             }
         }
-        stage('Setup Kubernetes Secret') {
 
+        stage('Setup Kubernetes Secret') {
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
+            steps {
+                script {
+                    def secretExists = sh(
+                        script: "kubectl get secret do-registry-secret --namespace=default --ignore-not-found",
+                        returnStatus: true
+                    ) == 0  // This returns true if the secret exists, false otherwise.
 
-              steps {
-                    script {
-                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
-
-                           if (!secretExists) {
-                            sh '''
-                              kubectl create secret docker-registry do-registry-secret \
-                              --docker-server=registry.digitalocean.com \
-                              --docker-username=${DOCR_USERNAME} \
-                              --docker-password=${DOCR_ACCESS_TOKEN} \
-                              --namespace=default
-                            '''
+                    if (secretExists) {
+                        echo "✅ Secret 'do-registry-secret' already exists. Skipping creation."
                     } else {
-                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
+                        echo "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
+                        error "Pipeline stopped because the required Kubernetes secret is missing."
+                    }
+                }
             }
         }
-    }
-}
+
         stage('Deploy to Kubernetes') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
