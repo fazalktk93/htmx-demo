@@ -104,6 +104,7 @@ pipeline {
         }
 
         stage('Read Version') {
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
                     def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
