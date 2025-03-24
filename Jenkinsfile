@@ -99,12 +99,23 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                        doctl auth init --access-token $DO_TOKEN
-                        doctl registry login
-                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                    '''
+                    script {
+                        def authStatus = sh(script: "doctl account get || echo 'unauthenticated'", returnStdout: true).trim()
+                        
+                        if (authStatus.contains('unauthenticated')) {
+                            echo "🔑 Authenticating with DigitalOcean..."
+                            sh '''
+                                export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                                doctl auth init --access-token $DO_TOKEN
+                                doctl registry login
+                            '''
+                        } else {
+                            echo "✅ Already authenticated with DigitalOcean. Skipping authentication."
+                        }
+                        
+                        echo "🔄 Updating Kubernetes context..."
+                        sh "doctl kubernetes cluster kubeconfig save $DO_CLUSTER"
+                    }
                 }
             }
         }
