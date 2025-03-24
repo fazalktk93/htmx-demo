@@ -25,7 +25,7 @@ parameters {
         stage('Check Version Change') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
+//                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
                         def changeDetected = sh(script: '''
                             git fetch origin main > /dev/null 2>&1
                             git reset --hard origin/main > /dev/null 2>&1
@@ -47,7 +47,7 @@ parameters {
                             currentBuild.result = 'SUCCESS'
                             error("Stopping pipeline as version.txt has not changed.")
                         }
-                    }
+             //       }
                 }
             }
         }
