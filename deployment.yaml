@@ -21,7 +21,8 @@ spec:
     spec:
       containers:
         - name: htmx-demo
-          image: registry.digitalocean.com/your-docr-repo/htmx-demo:latest  # Update with your DOCR image
+          image: registry.digitalocean.com/your-docr-repo/htmx-demo:${NEW_VERSION}  # Updated to use versioned tag
+          imagePullPolicy: Always  # Ensures the latest version is pulled
           ports:
             - containerPort: 8080
           env:
