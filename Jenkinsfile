@@ -48,7 +48,7 @@ pipeline {
                     } else {
                         echo "No version upgrade detected (or version downgrade). Skipping pipeline."
                         env.VERSION_CHANGED = "false"
-                        currentBuild.result = 'SUCCESS'
+                        currentBuild.result = 'true'
                         return
                     }
                 }
