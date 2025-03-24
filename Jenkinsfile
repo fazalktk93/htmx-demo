@@ -95,47 +95,30 @@ pipeline {
             }
         }
 
-        stage('Login to DigitalOcean and DOCR') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
+        stage('Login to DigitalOcean') {
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    script {
-                        // 1. Authenticate with DigitalOcean (if not already done)
-                        sh '''
-                            export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                            doctl auth init --access-token $DO_TOKEN || true  # Skip if already logged in
-                        '''
-
-                        // 2. Configure Kubernetes access
-                        sh 'doctl kubernetes cluster kubeconfig save $DO_CLUSTER'
-
-                        // 3. Log in to DOCR ONLY if not already logged in
-                        sh '''
-                            if ! grep -q "registry.digitalocean.com" ~/.docker/config.json 2>/dev/null; then
-                                echo "🔒 Logging into DOCR (first time)..."
-                                doctl registry login --expiry-seconds 3600  # 1-hour token
-                            else
-                                echo "✅ Already logged into DOCR. Skipping login."
-                            fi
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('Read Version') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
-            steps {
-                script {
-                    def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
-                    env.NEW_VERSION = NEW_VERSION
-                    echo "Version extracted: ${NEW_VERSION}"
+                    sh '''
+                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                        doctl auth init --access-token $DO_TOKEN
+                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                    '''
                 }
             }
         }
 
         stage('Build & Push Docker Image') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
+
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+                changeset "src/**/*.java"
+            }
+
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME} .
@@ -144,28 +127,30 @@ pipeline {
                 '''
             }
         }
-
         stage('Setup Kubernetes Secret') {
+
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
-            steps {
-                script {
-                    def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default --ignore-not-found",
-                        returnStatus: true
-                    ) == 0  // This returns true if the secret exists, false otherwise.
 
-                    if (secretExists) {
-                        echo "✅ Secret 'do-registry-secret' already exists. Skipping creation."
+              steps {
+                    script {
+                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
+
+                           if (!secretExists) {
+                            sh '''
+                              kubectl create secret docker-registry do-registry-secret \
+                              --docker-server=registry.digitalocean.com \
+                              --docker-username=${DOCR_USERNAME} \
+                              --docker-password=${DOCR_ACCESS_TOKEN} \
+                              --namespace=default
+                            '''
                     } else {
-                        echo "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
-                        error "Pipeline stopped because the required Kubernetes secret is missing."
-                    }
-                }
+                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
             }
         }
-
+    }
+}
         stage('Deploy to Kubernetes') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
