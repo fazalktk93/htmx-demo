@@ -135,31 +135,29 @@ pipeline {
         }
 
         stage('Setup Kubernetes Secret') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
-            steps {
-                script {
-                    def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default --no-headers | wc -l",
-                        returnStdout: true
-                    ).trim()
 
-                    if (secretExists == "1") {
-                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
-                    } else {
-                        echo "Creating Kubernetes secret 'do-registry-secret'..."
-                        withCredentials([string(credentialsId: 'DOCR_ACCESS_TOKEN', variable: 'DOCR_PASSWORD')]) {
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
+
+              steps {
+                    script {
+                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
+
+                           if (!secretExists) {
                             sh '''
-                                kubectl create secret docker-registry do-registry-secret \
-                                --docker-server=registry.digitalocean.com \
-                                --docker-username=doctl \
-                                --docker-password=${DOCR_PASSWORD} \
-                                --namespace=default
+                              kubectl create secret docker-registry do-registry-secret \
+                              --docker-server=registry.digitalocean.com \
+                              --docker-username=${DOCR_USERNAME} \
+                              --docker-password=${DOCR_ACCESS_TOKEN} \
+                              --namespace=default
                             '''
-                        }
-                    }
-                }
+                    } else {
+                            echo "Secret 'do-registry-secret' already exists. Skipping creation."
             }
         }
+    }
+}
 
         stage('Deploy to Kubernetes') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
