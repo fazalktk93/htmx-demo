@@ -19,6 +19,7 @@ pipeline {
         DEPLOYMENT_FILE = "deployment.yaml"
     }
 
+    stages {
         stage('Check Version Change') {
             steps {
                 script {
@@ -211,3 +212,4 @@ pipeline {
             }
         }
     }
+}
