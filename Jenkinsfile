@@ -169,6 +169,30 @@ pipeline {
                     kubectl apply -f $DEPLOYMENT_FILE
                 '''
             }
+
+        stage('Show Application URL') {
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
+            steps {
+                script {
+                    // Get the service type
+                    def serviceType = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.type}'", returnStdout: true).trim()
+                    
+                    if (serviceType == "LoadBalancer") {
+                        // Fetch LoadBalancer IP
+                        def appUrl = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                        echo "✅ Application is accessible at: http://${appUrl}:8080"
+                    } else if (serviceType == "NodePort") {
+                        // Fetch NodePort and the first node's IP
+                        def nodePort = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
+                        def nodeIP = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
+                        echo "✅ Application is accessible at: http://${nodeIP}:${nodePort}"
+                    } else {
+                        echo "⚠️ Could not determine application URL. Check service type."
+                    }
+                }
+            }
+        }
+
         }
     }
 }
