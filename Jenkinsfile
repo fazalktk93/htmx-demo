@@ -105,6 +105,7 @@ pipeline {
                     sh '''
                         export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
                         doctl auth init --access-token $DO_TOKEN
+                        doctl registry login
                         doctl kubernetes cluster kubeconfig save $DO_CLUSTER
                     '''
                 }
