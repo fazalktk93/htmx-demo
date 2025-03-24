@@ -44,6 +44,7 @@ pipeline {
                     if (newVerNum > prevVerNum) {
                         echo "Version upgrade detected. Proceeding with the pipeline."
                         env.VERSION_CHANGED = "true"
+                        env.NEW_VERSION = newVersion  // Set the NEW_VERSION here
                     } else {
                         echo "No version upgrade detected (or version downgrade). Skipping pipeline."
                         env.VERSION_CHANGED = "false"
