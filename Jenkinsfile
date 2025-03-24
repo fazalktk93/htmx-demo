@@ -100,21 +100,22 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
                     script {
-                        def authStatus = sh(script: "doctl account get || echo 'unauthenticated'", returnStdout: true).trim()
-                        
-                        if (authStatus.contains('unauthenticated')) {
-                            echo "🔑 Authenticating with DigitalOcean..."
+                        def isLoggedIn = sh(
+                            script: "doctl registry login --expiry-seconds 1 >/dev/null 2>&1 || echo 'not_logged_in'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (isLoggedIn.contains("not_logged_in")) {
+                            echo "🔑 Logging into DigitalOcean..."
                             sh '''
                                 export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
                                 doctl auth init --access-token $DO_TOKEN
                                 doctl registry login
+                                doctl kubernetes cluster kubeconfig save $DO_CLUSTER
                             '''
                         } else {
-                            echo "✅ Already authenticated with DigitalOcean. Skipping authentication."
+                            echo "✅ Already authenticated with DigitalOcean. Skipping login."
                         }
-                        
-                        echo "🔄 Updating Kubernetes context..."
-                        sh "doctl kubernetes cluster kubeconfig save $DO_CLUSTER"
                     }
                 }
             }
