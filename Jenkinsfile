@@ -15,7 +15,7 @@ parameters {
         DO_CLUSTER = "${params.DO_CLUSTER}"
         SONAR_HOST_URL = "${params.SONAR_HOST_URL}"
         SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
-        GITHUB_CREDENTIALS_ID = "github-push"
+       GITHUB_CREDENTIALS_ID = "github-push"
         VERSION_FILE = "version.txt"
         DEPLOYMENT_FILE = "deployment.yaml"
     }
@@ -25,29 +25,27 @@ parameters {
         stage('Check Version Change') {
             steps {
                 script {
-//                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GIT_PAT')]) {
-                        def changeDetected = sh(script: '''
-                            git fetch origin main > /dev/null 2>&1
-                            git reset --hard origin/main > /dev/null 2>&1
-                            
-                            # Check if version.txt has changed
-                            if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
-                                echo "false"
-                            else
-                                echo "true"
-                            fi
-                        ''', returnStdout: true).trim()
+                    // Fetch latest changes and reset
+                    sh 'git fetch origin main'
+                    sh 'git reset --hard origin/main'
 
-                        // Ensure env.VERSION_CHANGED is properly set
-                        env.VERSION_CHANGED = changeDetected
-                        echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
+                    // Check if version.txt has changed
+                    def changeDetected = sh(script: '''
+                        if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
+                            echo "false"
+                        else
+                            echo "true"
+                        fi
+                    ''', returnStdout: true).trim()
 
-                        if (env.VERSION_CHANGED == "false") {
-                            echo "No changes detected in version.txt. Skipping pipeline."
-                            currentBuild.result = 'SUCCESS'
-                            error("Stopping pipeline as version.txt has not changed.")
-                        }
-             //       }
+                    env.VERSION_CHANGED = changeDetected
+                    echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
+
+                    if (env.VERSION_CHANGED == "false") {
+                        echo "No changes detected in version.txt. Skipping pipeline."
+                        currentBuild.result = 'SUCCESS'
+                        error("Stopping pipeline as version.txt has not changed.")
+                    }
                 }
             }
         }
