@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     parameters {
         string(name: 'IMAGE_NAME', description: 'Docker Image Name')
         string(name: 'REGISTRY', description: 'Docker Registry')
@@ -24,26 +24,34 @@ pipeline {
         stage('Check Version Change') {
             steps {
                 script {
-                    // Fetch latest changes and reset
+                    // Fetch latest changes
                     sh 'git fetch origin main'
                     sh 'git reset --hard origin/main'
 
-                    // Check if version.txt has changed
-                    def changeDetected = sh(script: '''
-                        if git diff --quiet HEAD~1 HEAD -- "version.txt"; then
-                            echo "false"
-                        else
-                            echo "true"
-                        fi
-                    ''', returnStdout: true).trim()
+                    // Extract previous and new versions
+                    def previousVersion = sh(script: "git show HEAD~1:version.txt || echo '0.0'", returnStdout: true).trim()
+                    def newVersion = sh(script: "cat version.txt", returnStdout: true).trim()
 
-                    env.VERSION_CHANGED = changeDetected
-                    echo "VERSION_CHANGED set to: ${env.VERSION_CHANGED}"
+                    echo "Previous Version: ${previousVersion}"
+                    echo "New Version: ${newVersion}"
 
-                    if (env.VERSION_CHANGED == "false") {
-                        echo "No changes detected in version.txt. Skipping pipeline."
+                    // Convert versions to numeric values for comparison
+                    def parseVersion = { version ->
+                        def parts = version.tokenize('.').collect { it as int }
+                        return parts.size() > 1 ? parts[0] * 100 + parts[1] : parts[0] * 100
+                    }
+
+                    def prevVerNum = parseVersion(previousVersion)
+                    def newVerNum = parseVersion(newVersion)
+
+                    if (newVerNum > prevVerNum) {
+                        echo "Version upgrade detected. Proceeding with the pipeline."
+                        env.VERSION_CHANGED = "true"
+                    } else {
+                        echo "No version upgrade detected (or version downgrade). Skipping pipeline."
+                        env.VERSION_CHANGED = "false"
                         currentBuild.result = 'SUCCESS'
-                        return  // Exit gracefully without failure
+                        return
                     }
                 }
             }
