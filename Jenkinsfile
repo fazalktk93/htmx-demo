@@ -24,26 +24,23 @@ pipeline {
         stage('Check Version Change') {
             steps {
                 script {
-                    // Fetch latest changes
                     sh 'git fetch origin main'
                     sh 'git reset --hard origin/main'
-
-                    // Extract previous and new versions
+                    
                     def previousVersion = sh(script: "git show HEAD~1:version.txt || echo '0.0'", returnStdout: true).trim()
                     def newVersion = sh(script: "cat version.txt", returnStdout: true).trim()
-
+                    
                     echo "Previous Version: ${previousVersion}"
                     echo "New Version: ${newVersion}"
-
-                    // Convert versions to numeric values for comparison
+                    
                     def parseVersion = { version ->
                         def parts = version.tokenize('.').collect { it as int }
                         return parts.size() > 1 ? parts[0] * 100 + parts[1] : parts[0] * 100
                     }
-
+                    
                     def prevVerNum = parseVersion(previousVersion)
                     def newVerNum = parseVersion(newVersion)
-
+                    
                     if (newVerNum > prevVerNum) {
                         echo "Version upgrade detected. Proceeding with the pipeline."
                         env.VERSION_CHANGED = "true"
@@ -80,10 +77,10 @@ pipeline {
                 script {
                     echo "Waiting 20 seconds before checking Quality Gate..."
                     sleep(time: 20, unit: 'SECONDS')
-
+                    
                     def qg = waitForQualityGate()
                     echo "SonarQube Quality Gate Status: ${qg.status}"
-
+                    
                     if (qg.status != 'OK') {
                         error "Pipeline failed due to Quality Gate failure: ${qg.status}"
                     }
@@ -135,29 +132,25 @@ pipeline {
         }
 
         stage('Setup Kubernetes Secret') {
-
-            when {
-                    environment name: 'VERSION_CHANGED', value: 'true'
-                }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                    script {
-                        def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
-
-                            if (!secretExists) {
-                                sh '''
-                                kubectl create secret docker-registry do-registry-secret \
-                                --docker-server=registry.digitalocean.com \
-                                --docker-username=${DOCR_USERNAME} \
-                                --docker-password=${DOCR_ACCESS_TOKEN} \
-                                --namespace=default
-                                '''
-                        } else {
-                                echo "Secret 'do-registry-secret' already exists. Skipping creation."
+                script {
+                    def secretExists = sh(script: "kubectl get secret do-registry-secret --namespace=default", returnStatus: true) == 0
+                    
+                    if (!secretExists) {
+                        sh '''
+                            kubectl create secret docker-registry do-registry-secret \
+                            --docker-server=registry.digitalocean.com \
+                            --docker-username=${DOCR_USERNAME} \
+                            --docker-password=${DOCR_ACCESS_TOKEN} \
+                            --namespace=default
+                        '''
+                    } else {
+                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
+                    }
                 }
             }
         }
-    }
 
         stage('Deploy to Kubernetes') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
@@ -167,20 +160,18 @@ pipeline {
                     kubectl apply -f $DEPLOYMENT_FILE
                 '''
             }
+        }
 
         stage('Show Application URL') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
-                    // Get the service type
                     def serviceType = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.type}'", returnStdout: true).trim()
                     
                     if (serviceType == "LoadBalancer") {
-                        // Fetch LoadBalancer IP
                         def appUrl = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
                         echo "✅ Application is accessible at: http://${appUrl}:8080"
                     } else if (serviceType == "NodePort") {
-                        // Fetch NodePort and the first node's IP
                         def nodePort = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
                         def nodeIP = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
                         echo "✅ Application is accessible at: http://${nodeIP}:${nodePort}"
@@ -189,8 +180,6 @@ pipeline {
                     }
                 }
             }
-        }
-
         }
     }
 }
