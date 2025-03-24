@@ -116,7 +116,6 @@ pipeline {
 
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
-                changeset "src/**/*.java"
             }
 
             steps {
