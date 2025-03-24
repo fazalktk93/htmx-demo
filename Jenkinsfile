@@ -135,25 +135,18 @@ pipeline {
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
-
             steps {
                 script {
                     def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default || echo 'notfound'",
+                        script: "kubectl get secret do-registry-secret --namespace=default --output=jsonpath='{.metadata.name}' || echo 'notfound'",
                         returnStdout: true
                     ).trim()
 
-                    if (secretExists.contains('do-registry-secret')) {
-                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
+                    if (secretExists == 'do-registry-secret') {
+                        echo "✅ Secret 'do-registry-secret' already exists. Skipping creation."
+                        return  // Exit early, no new key will be created
                     } else {
-                        echo "Creating Kubernetes secret 'do-registry-secret'..."
-                        sh '''
-                            kubectl create secret docker-registry do-registry-secret \
-                            --docker-server=registry.digitalocean.com \
-                            --docker-username=${DOCR_USERNAME} \
-                            --docker-password=${DOCR_ACCESS_TOKEN} \
-                            --namespace=default
-                        '''
+                        error "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
                     }
                 }
             }
