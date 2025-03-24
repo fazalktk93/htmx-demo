@@ -15,7 +15,6 @@ parameters {
         DO_CLUSTER = "${params.DO_CLUSTER}"
         SONAR_HOST_URL = "${params.SONAR_HOST_URL}"
         SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
-       GITHUB_CREDENTIALS_ID = "github-push"
         VERSION_FILE = "version.txt"
         DEPLOYMENT_FILE = "deployment.yaml"
     }
