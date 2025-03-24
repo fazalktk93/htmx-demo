@@ -170,7 +170,7 @@ pipeline {
                     
                     if (serviceType == "LoadBalancer") {
                         def appUrl = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
-                        echo "✅ Application is accessible at: http://${appUrl}:8080"
+                        echo "✅ Application is accessible at: http://${appUrl}"
                     } else if (serviceType == "NodePort") {
                         def nodePort = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
                         def nodeIP = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
