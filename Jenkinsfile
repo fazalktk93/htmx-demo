@@ -138,15 +138,15 @@ pipeline {
             steps {
                 script {
                     def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default --output=jsonpath='{.metadata.name}' || echo 'notfound'",
-                        returnStdout: true
-                    ).trim()
+                        script: "kubectl get secret do-registry-secret --namespace=default --ignore-not-found",
+                        returnStatus: true
+                    ) == 0  // This returns true if the secret exists, false otherwise.
 
-                    if (secretExists == 'do-registry-secret') {
+                    if (secretExists) {
                         echo "✅ Secret 'do-registry-secret' already exists. Skipping creation."
-                        return  // Exit early, no new key will be created
                     } else {
-                        error "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
+                        echo "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
+                        error "Pipeline stopped because the required Kubernetes secret is missing."
                     }
                 }
             }
