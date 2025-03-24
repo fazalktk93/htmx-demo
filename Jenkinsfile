@@ -1,7 +1,7 @@
 pipeline {
     agent any
     
-parameters {
+    parameters {
         string(name: 'IMAGE_NAME', description: 'Docker Image Name')
         string(name: 'REGISTRY', description: 'Docker Registry')
         string(name: 'DO_CLUSTER', description: 'DigitalOcean Kubernetes Cluster')
@@ -43,18 +43,14 @@ parameters {
                     if (env.VERSION_CHANGED == "false") {
                         echo "No changes detected in version.txt. Skipping pipeline."
                         currentBuild.result = 'SUCCESS'
-                        error("Stopping pipeline as version.txt has not changed.")
+                        return  // Exit gracefully without failure
                     }
                 }
             }
         }
 
         stage('SonarQube Analysis') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
@@ -70,17 +66,12 @@ parameters {
             }
         }
 
-
         stage('SonarQube Quality Gate') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
-                    echo "Waiting 60 seconds before checking Quality Gate..."
-                    sleep(time: 20, unit: 'SECONDS') // Wait for SonarQube to process
+                    echo "Waiting 20 seconds before checking Quality Gate..."
+                    sleep(time: 20, unit: 'SECONDS')
 
                     def qg = waitForQualityGate()
                     echo "SonarQube Quality Gate Status: ${qg.status}"
@@ -93,25 +84,14 @@ parameters {
         }
 
         stage('Build JAR') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-
                 sh 'mvn clean package -DskipTests'
-
             }
         }
 
-
         stage('Login to DigitalOcean') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
                     sh '''
@@ -127,18 +107,14 @@ parameters {
             steps {
                 script {
                     def NEW_VERSION = sh(script: "cat version.txt", returnStdout: true).trim()
+                    env.NEW_VERSION = NEW_VERSION
                     echo "Version extracted: ${NEW_VERSION}"
                 }
             }
         }
 
         stage('Build & Push Docker Image') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-                changeset "src/**/*.java"
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME} .
@@ -149,10 +125,7 @@ parameters {
         }
 
         stage('Setup Kubernetes Secret') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
                     def secretExists = sh(
@@ -164,24 +137,22 @@ parameters {
                         echo "Secret 'do-registry-secret' already exists. Skipping creation."
                     } else {
                         echo "Creating Kubernetes secret 'do-registry-secret'..."
-                        sh '''
-                            kubectl create secret docker-registry do-registry-secret \
-                            --docker-server=registry.digitalocean.com \
-                            --docker-username=${DOCR_USERNAME} \
-                            --docker-password=${DOCR_ACCESS_TOKEN} \
-                            --namespace=default
-                        '''
+                        withCredentials([string(credentialsId: 'DOCR_ACCESS_TOKEN', variable: 'DOCR_PASSWORD')]) {
+                            sh '''
+                                kubectl create secret docker-registry do-registry-secret \
+                                --docker-server=registry.digitalocean.com \
+                                --docker-username=${DOCR_USERNAME} \
+                                --docker-password=${DOCR_PASSWORD} \
+                                --namespace=default
+                            '''
+                        }
                     }
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
-
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
                     kubectl get nodes
