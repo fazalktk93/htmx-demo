@@ -97,44 +97,15 @@ pipeline {
             }
         }
 
-        stage('Authenticate with DigitalOcean') {
-            when { 
-                environment name: 'VERSION_CHANGED', value: 'true' 
-            }
+        stage('Login to DigitalOcean') {
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    script {
-                        // 1. Authenticate doctl
-                        sh '''
-                            export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                            doctl auth init --access-token $DO_TOKEN 2>/dev/null || true
-                            doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                        '''
-                        
-                        // 2. Smart DOCR login (only when needed)
-                        def dockerAuthCheck = sh(
-                            script: 'docker auth inspect registry.digitalocean.com >/dev/null 2>&1; echo $?',
-                            returnStdout: true
-                        ).trim()
-                        
-                        if (dockerAuthCheck != "0") {
-                            echo "🔒 Authenticating with DOCR..."
-                            sh '''
-                                # Get temporary registry password (valid 1 hour)
-                                DOCR_PASSWORD=$(doctl registry docker-config --no-expiry | \
-                                    jq -r '.auths."registry.digitalocean.com".auth' | \
-                                    base64 -d | cut -d: -f2)
-                                
-                                # Secure login
-                                echo "$DOCR_PASSWORD" | docker login \
-                                    registry.digitalocean.com \
-                                    --username $DO_TOKEN \
-                                    --password-stdin
-                            '''
-                        } else {
-                            echo "✅ Already authenticated with DOCR"
-                        }
-                    }
+                    sh '''
+                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                        doctl auth init --access-token $DO_TOKEN
+                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
+                    '''
                 }
             }
         }
