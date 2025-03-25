@@ -8,7 +8,7 @@ RUN apk update && apk add --no-cache openjdk17 maven
 WORKDIR /app
 
 # Copy the entire project source code
-COPY ./htmx-demo/ .
+COPY . .
 
 # Expose application port
 EXPOSE 8080
