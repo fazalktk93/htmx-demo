@@ -157,7 +157,7 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
-                    sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:$NEW_{VERSION}|" ${DEPLOYMENT_FILE}
+                    sed -i "s|image: REGISTRY/IMAGE_NAME:NEW_VERSION|image: ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}|" ${DEPLOYMENT_FILE}
                     kubectl apply -f ${DEPLOYMENT_FILE}
                 '''
             }
@@ -166,22 +166,23 @@ pipeline {
 }
 
         stage('Show Application URL') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
-                    def serviceType = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.type}'", returnStdout: true).trim()
-                    
-                    if (serviceType == "LoadBalancer") {
-                        def appUrl = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
-                        echo "✅ Application is accessible at: http://${appUrl}"
-                    } else if (serviceType == "NodePort") {
-                        def nodePort = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
-                        def nodeIP = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
-                        echo "✅ Application is accessible at: http://${nodeIP}:${nodePort}"
-                    } else {
-                        echo "⚠️ Could not determine application URL. Check service type."
+                    if (env.VERSION_CHANGED == "true") {
+                        def serviceType = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.type}'", returnStdout: true).trim()
+                        
+                        if (serviceType == "LoadBalancer") {
+                            def appUrl = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                            echo "✅ Application is accessible at: http://${appUrl}"
+                        } else if (serviceType == "NodePort") {
+                            def nodePort = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
+                            def nodeIP = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
+                            echo "✅ Application is accessible at: http://${nodeIP}:${nodePort}"
+                        } else {
+                            echo "⚠️ Could not determine application URL. Check service type."
+                        }
                     }
                 }
-       }    }
-
+            }
+        }
     
