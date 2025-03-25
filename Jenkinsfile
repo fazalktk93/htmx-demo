@@ -154,9 +154,7 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            when {
-                expression { env.SKIP_BUILD == "false" }
-            }
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
                     sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}|" ${DEPLOYMENT_FILE}
