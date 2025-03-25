@@ -158,19 +158,11 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Replace placeholders in the deployment file
-                        sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
-                        sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
-
-                        # Apply the deployment file
+                        sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g; s|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
+                        
                         kubectl apply -f $DEPLOYMENT_FILE
-
-                        # Update deployment image only if there's a change
-                        kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION} --record
-
-                        # Ensure Kubernetes applies the new image properly
+                        kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
                         kubectl rollout status deployment/htmx-demo
-
                     '''
                 }
             }
