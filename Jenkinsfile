@@ -157,7 +157,7 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
-                    sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}|" ${DEPLOYMENT_FILE}
+                    sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:$NEW_{VERSION}|" ${DEPLOYMENT_FILE}
                     kubectl apply -f ${DEPLOYMENT_FILE}
                 '''
             }
@@ -182,6 +182,6 @@ pipeline {
                         echo "⚠️ Could not determine application URL. Check service type."
                     }
                 }
-    }
-}
+       }    }
+
     

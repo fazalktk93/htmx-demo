@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 5  # Ensure old pods terminate quickly
       containers:
         - name: htmx-demo
-          image: REGISTRY/IMAGE_NAME:VERSION  # Placeholder for Jenkins pipeline replacement
+          image: REGISTRY/IMAGE_NAME:NEW_VERSION  # Placeholder for Jenkins pipeline replacement
           imagePullPolicy: Always  # Ensures the latest version is always pulled
           ports:
             - containerPort: 8080
