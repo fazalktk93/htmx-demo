@@ -154,19 +154,18 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
+            when {
+                expression { env.SKIP_BUILD == "false" }
+            }
             steps {
-                script {
-                    sh '''
-                        sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g; s|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
-                        
-                        kubectl apply -f $DEPLOYMENT_FILE
-                        kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
-                        kubectl rollout status deployment/htmx-demo
-                    '''
-                }
+                sh '''
+                    sed -i "s|image: ${REGISTRY}/${IMAGE_NAME}:.*|image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}|" ${DEPLOYMENT_FILE}
+                    kubectl apply -f ${DEPLOYMENT_FILE}
+                '''
             }
         }
+    }
+}
 
         stage('Show Application URL') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
