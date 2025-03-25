@@ -157,12 +157,13 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
-                    // Replace PLACEHOLDER_VERSION with the actual version in deployment.yaml
-                    sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
-                    sed -i 's|REPO_PLACEHOLDER|'"${IMAGE_NAME}"'|g' $DEPLOYMENT_FILE
-                    sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
 
                     sh '''
+
+                        sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
+                        sed -i 's|REPO_PLACEHOLDER|'"${IMAGE_NAME}"'|g' $DEPLOYMENT_FILE
+                        sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
+
                         # Apply the updated deployment file
                         kubectl apply -f $DEPLOYMENT_FILE
 
