@@ -151,14 +151,12 @@ pipeline {
 
             steps {
                 script {
-                    def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default || echo 'notfound'",
+                    def secretCheck = sh(
+                        script: "kubectl get secret do-registry-secret --namespace=default --no-headers 2>&1 || echo 'notfound'",
                         returnStdout: true
                     ).trim()
 
-                    if (secretExists.contains('do-registry-secret')) {
-                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
-                    } else {
+                    if (secretCheck.contains('notfound') || secretCheck.toLowerCase().contains('error')) {
                         echo "Creating Kubernetes secret 'do-registry-secret'..."
                         sh '''
                             kubectl create secret docker-registry do-registry-secret \
@@ -167,6 +165,8 @@ pipeline {
                             --docker-password=${DOCR_ACCESS_TOKEN} \
                             --namespace=default
                         '''
+                    } else {
+                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
                     }
                 }
             }
