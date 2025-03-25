@@ -98,27 +98,25 @@ pipeline {
         }
 
         stage('Login to DigitalOcean') {
+            when {
+                environment name: 'VERSION_CHANGED', value: 'true'
+            }
             steps {
                 script {
-                    if (env.VERSION_CHANGED == "true") {
-                        withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                            def doctlAuthCheck = sh(
-                                script: "doctl auth list | grep -q 'Valid' && echo 'AUTH_EXISTS' || echo 'NO_AUTH'",
-                                returnStdout: true
-                            ).trim()
+                    withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
+                        def doctlAuthCheck = sh(
+                            script: "doctl auth list | grep -q 'Valid' && echo 'AUTH_EXISTS' || echo 'NO_AUTH'",
+                            returnStdout: true
+                        ).trim()
 
-                            if (doctlAuthCheck == "NO_AUTH") {
-                                echo "🔑 No valid authentication found, initializing DigitalOcean auth..."
-                                sh '''
-                                    export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                                    doctl auth init --access-token $DO_TOKEN
-                                '''
-                            } else {
-                                echo "✅ Already authenticated with DigitalOcean. Skipping auth init."
-                            }
-
-                            sh "doctl kubernetes cluster kubeconfig save $DO_CLUSTER"
+                        if (doctlAuthCheck == "NO_AUTH") {
+                            echo "🔑 No valid authentication found, initializing DigitalOcean auth..."
+                            sh "doctl auth init --access-token $DO_TOKEN"
+                        } else {
+                            echo "✅ Already authenticated with DigitalOcean. Skipping auth init."
                         }
+
+                        sh "doctl kubernetes cluster kubeconfig save $DO_CLUSTER"
                     }
                 }
             }
