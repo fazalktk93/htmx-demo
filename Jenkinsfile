@@ -157,7 +157,6 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
-                    kubectl get nodes
                     kubectl apply -f $DEPLOYMENT_FILE
 
                     # Update the deployment with the new image only if there's a change
