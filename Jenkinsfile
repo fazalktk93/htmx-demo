@@ -102,6 +102,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
                     sh '''
+                        doctl registry login
                         export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
                         doctl auth init --access-token $DO_TOKEN
                         doctl kubernetes cluster kubeconfig save $DO_CLUSTER
@@ -162,9 +163,6 @@ pipeline {
 
                         sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
                         sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
-
-                        # Apply the updated deployment file
-                        kubectl apply -f $DEPLOYMENT_FILE
 
                         # Update the deployment with the new image only if there's a change
                         kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION} --record
