@@ -5,7 +5,7 @@ metadata:
   labels:
     app: htmx-demo
 spec:
-  replicas: 3  # Adjust based on your scaling needs
+  replicas: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: htmx-demo
-          image: registry.digitalocean.com/your-docr-repo/htmx-demo:${NEW_VERSION}  # Updated to use versioned tag
-          imagePullPolicy: Always  # Ensures the latest version is pulled
+          image: REGISTRY_PLACEHOLDER/REPO_PLACEHOLDER/htmx-demo:VERSION_PLACEHOLDER  # Dynamically replaced by Jenkins
+          imagePullPolicy: Always  # Ensures the latest version is always pulled
           ports:
             - containerPort: 8080
           env:
@@ -48,7 +48,7 @@ spec:
               memory: "256Mi"
               cpu: "250m"
       imagePullSecrets:
-        - name: do-registry-secret  # Ensure this secret exists
+        - name: do-registry-secret
 ---
 apiVersion: v1
 kind: Service

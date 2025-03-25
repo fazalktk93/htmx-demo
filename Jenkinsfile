@@ -156,13 +156,23 @@ pipeline {
         stage('Deploy to Kubernetes') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                sh '''
-                    kubectl apply -f $DEPLOYMENT_FILE
+                script {
+                    // Replace PLACEHOLDER_VERSION with the actual version in deployment.yaml
+                    sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
+                    sed -i 's|REPO_PLACEHOLDER|'"${IMAGE_NAME}"'|g' $DEPLOYMENT_FILE
+                    sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
 
-                    # Update the deployment with the new image only if there's a change
-                    kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION} --record
-                    kubectl rollout status deployment/htmx-demo
-                '''
+                    sh '''
+                        # Apply the updated deployment file
+                        kubectl apply -f $DEPLOYMENT_FILE
+
+                        # Update the deployment with the new image only if there's a change
+                        kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION} --record
+
+                        # Ensure Kubernetes applies the new image properly
+                        kubectl rollout status deployment/htmx-demo
+                    '''
+                }
             }
         }
 
