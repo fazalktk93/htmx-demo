@@ -33,13 +33,13 @@ spec:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 2  # Reduce delay for faster pod availability
+            initialDelaySeconds: 30  # Reduce delay for faster pod availability
             periodSeconds: 5  # Check readiness more frequently
           livenessProbe:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 5
+            initialDelaySeconds: 30
             periodSeconds: 10
 #          resources:
 #            limits:
