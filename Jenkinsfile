@@ -159,6 +159,10 @@ pipeline {
                 sh '''
                     kubectl get nodes
                     kubectl apply -f $DEPLOYMENT_FILE
+
+                    # Update the deployment with the new image only if there's a change
+                    kubectl set image deployment/htmx-demo htmx-demo=${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION} --record
+                    kubectl rollout status deployment/htmx-demo
                 '''
             }
         }
