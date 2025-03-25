@@ -41,13 +41,13 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
-          resources:
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-            requests:
-              memory: "256Mi"
-              cpu: "250m"
+#          resources:
+#            limits:
+#              memory: "512Mi"
+#              cpu: "500m"
+#            requests:
+#              memory: "256Mi"
+#              cpu: "250m"
       imagePullSecrets:
         - name: do-registry-secret  # Ensure this secret exists
 ---
