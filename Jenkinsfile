@@ -171,8 +171,6 @@ pipeline {
                         # Ensure Kubernetes applies the new image properly
                         kubectl rollout status deployment/htmx-demo
 
-                        # Forcefully remove old pods if they're stuck
-                        kubectl delete pod -l app=htmx-demo --field-selector=status.phase=Failed --force --grace-period=0 || true
                     '''
                 }
             }
