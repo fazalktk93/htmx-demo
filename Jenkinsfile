@@ -161,7 +161,6 @@ pipeline {
                     sh '''
 
                         sed -i 's|REGISTRY_PLACEHOLDER|'"${REGISTRY}"'|g' $DEPLOYMENT_FILE
-                        sed -i 's|REPO_PLACEHOLDER|'"${IMAGE_NAME}"'|g' $DEPLOYMENT_FILE
                         sed -i 's|VERSION_PLACEHOLDER|'"${NEW_VERSION}"'|g' $DEPLOYMENT_FILE
 
                         # Apply the updated deployment file
