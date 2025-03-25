@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 5  # Ensure old pods terminate quickly
       containers:
         - name: htmx-demo
-          image: REGISTRY_PLACEHOLDER/htmx-demo:VERSION_PLACEHOLDER  # Dynamically replaced by Jenkins
+          image: registry.digitalocean.com/kube-app-registry/htmx-demo:VERSION_PLACEHOLDER  # Dynamically replaced by Jenkins
           imagePullPolicy: Always  # Ensures the latest version is always pulled
           ports:
             - containerPort: 8080
