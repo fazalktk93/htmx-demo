@@ -184,7 +184,6 @@ pipeline {
                         echo "⚠️ Could not determine application URL. Check service type."
                     }
                 }
-            }
-        }
     }
 }
+    
