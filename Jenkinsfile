@@ -98,14 +98,28 @@ pipeline {
         }
 
         stage('Login to DigitalOcean') {
-            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
-                    sh '''
-                        export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
-                        doctl auth init --access-token $DO_TOKEN
-                        doctl kubernetes cluster kubeconfig save $DO_CLUSTER
-                    '''
+                script {
+                    if (env.VERSION_CHANGED == "true") {
+                        withCredentials([string(credentialsId: 'DO_ACCESS_TOKEN', variable: 'DO_TOKEN')]) {
+                            def doctlAuthCheck = sh(
+                                script: "doctl auth list | grep -q 'Valid' && echo 'AUTH_EXISTS' || echo 'NO_AUTH'",
+                                returnStdout: true
+                            ).trim()
+
+                            if (doctlAuthCheck == "NO_AUTH") {
+                                echo "🔑 No valid authentication found, initializing DigitalOcean auth..."
+                                sh '''
+                                    export DIGITALOCEAN_ACCESS_TOKEN=$DO_TOKEN
+                                    doctl auth init --access-token $DO_TOKEN
+                                '''
+                            } else {
+                                echo "✅ Already authenticated with DigitalOcean. Skipping auth init."
+                            }
+
+                            sh "doctl kubernetes cluster kubeconfig save $DO_CLUSTER"
+                        }
+                    }
                 }
             }
         }
@@ -136,18 +150,25 @@ pipeline {
             when {
                 environment name: 'VERSION_CHANGED', value: 'true'
             }
+
             steps {
                 script {
                     def secretExists = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default --ignore-not-found",
-                        returnStatus: true
-                    ) == 0  // This returns true if the secret exists, false otherwise.
+                        script: "kubectl get secret do-registry-secret --namespace=default || echo 'notfound'",
+                        returnStdout: true
+                    ).trim()
 
-                    if (secretExists) {
-                        echo "✅ Secret 'do-registry-secret' already exists. Skipping creation."
+                    if (secretExists.contains('do-registry-secret')) {
+                        echo "Secret 'do-registry-secret' already exists. Skipping creation."
                     } else {
-                        echo "❌ Secret 'do-registry-secret' is missing. Please create it manually before running this pipeline."
-                        error "Pipeline stopped because the required Kubernetes secret is missing."
+                        echo "Creating Kubernetes secret 'do-registry-secret'..."
+                        sh '''
+                            kubectl create secret docker-registry do-registry-secret \
+                            --docker-server=registry.digitalocean.com \
+                            --docker-username=${DOCR_USERNAME} \
+                            --docker-password=${DOCR_ACCESS_TOKEN} \
+                            --namespace=default
+                        '''
                     }
                 }
             }
@@ -162,8 +183,6 @@ pipeline {
                 '''
             }
         }
-    }
-}
 
         stage('Show Application URL') {
             steps {
@@ -185,4 +204,7 @@ pipeline {
                 }
             }
         }
-    
+
+    }
+}
+  
