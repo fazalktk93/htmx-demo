@@ -19,6 +19,7 @@ spec:
       labels:
         app: htmx-demo
     spec:
+      terminationGracePeriodSeconds: 5  # Ensure old pods terminate quickly
       containers:
         - name: htmx-demo
           image: REGISTRY_PLACEHOLDER/htmx-demo:VERSION_PLACEHOLDER  # Dynamically replaced by Jenkins
@@ -32,14 +33,14 @@ spec:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 2  # Reduce delay for faster pod availability
+            periodSeconds: 5  # Check readiness more frequently
           livenessProbe:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 15
+            initialDelaySeconds: 5
+            periodSeconds: 10
           resources:
             limits:
               memory: "512Mi"
@@ -48,7 +49,7 @@ spec:
               memory: "256Mi"
               cpu: "250m"
       imagePullSecrets:
-        - name: do-registry-secret
+        - name: do-registry-secret  # Ensure this secret exists
 ---
 apiVersion: v1
 kind: Service
