@@ -145,26 +145,26 @@ pipeline {
         }
 
         stage('Setup Kubernetes Secret') {
-            when {
-                environment name: 'VERSION_CHANGED', value: 'true'
-            }
-
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 script {
-                    def secretCheck = sh(
-                        script: "kubectl get secret do-registry-secret --namespace=default --no-headers 2>&1 || echo 'notfound'",
+                    def secretExists = sh(
+                        script: "kubectl get secret do-registry-secret --namespace=default --ignore-not-found",
                         returnStdout: true
                     ).trim()
 
-                    if (secretCheck.contains('notfound') || secretCheck.toLowerCase().contains('error')) {
+                    if (secretExists == "") {
                         echo "Creating Kubernetes secret 'do-registry-secret'..."
-                        sh '''
-                            kubectl create secret docker-registry do-registry-secret \
-                            --docker-server=registry.digitalocean.com \
-                            --docker-username=${DOCR_USERNAME} \
-                            --docker-password=${DOCR_ACCESS_TOKEN} \
-                            --namespace=default
-                        '''
+                        withCredentials([string(credentialsId: 'DOCR_ACCESS_TOKEN', variable: 'DOCR_ACCESS_TOKEN'),
+                                        string(credentialsId: 'DOCR_USERNAME', variable: 'DOCR_USERNAME')]) {
+                            sh '''
+                                kubectl create secret docker-registry do-registry-secret \
+                                --docker-server=registry.digitalocean.com \
+                                --docker-username=${DOCR_USERNAME} \
+                                --docker-password=${DOCR_ACCESS_TOKEN} \
+                                --namespace=default
+                            '''
+                        }
                     } else {
                         echo "Secret 'do-registry-secret' already exists. Skipping creation."
                     }
