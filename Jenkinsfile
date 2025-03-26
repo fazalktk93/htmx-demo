@@ -186,6 +186,8 @@ pipeline {
             steps {
                 script {
                     if (env.VERSION_CHANGED == "true") {
+                        echo "Waiting for LoadBalancer IP..."
+                        sleep(time: 30, unit: 'SECONDS') // Wait for the IP to be assigned
                         def serviceType = sh(script: "kubectl get svc htmx-demo-service -o=jsonpath='{.spec.type}'", returnStdout: true).trim()
                         
                         if (serviceType == "LoadBalancer") {
