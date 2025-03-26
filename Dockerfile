@@ -1,17 +1,17 @@
-# Use Alpine with Maven and OpenJDK
+# Use a lightweight Alpine
 FROM alpine:latest
 
-# Install required dependencies
-RUN apk update && apk add --no-cache openjdk17 maven
+#update dependecies
+RUN apk update && apk add --no-cache openjdk17
 
 # Set working directory
-WORKDIR /app
+WORKDIR /tmp
 
-# Copy the entire project source code
-COPY . .
+# Copy the built JAR file from the host machine into the container
+COPY target/htmx-demo.jar /app/app.jar
 
 # Expose application port
 EXPOSE 8080
 
-# Run the application using Maven
-CMD ["mvn", "spring-boot:run"]
+# Command to run the Spring Boot application
+CMD ["java", "-jar", "/app/app.jar"]
