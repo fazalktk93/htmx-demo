@@ -137,6 +137,7 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
+                    doctl registry login
                     docker build -t ${IMAGE_NAME} .
                     docker tag ${IMAGE_NAME} ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
                     docker push ${REGISTRY}/${IMAGE_NAME}:${NEW_VERSION}
