@@ -1,20 +1,12 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'IMAGE_NAME', description: 'Docker Image Name')
-        string(name: 'REGISTRY', description: 'Docker Registry')
-        string(name: 'DO_CLUSTER', description: 'DigitalOcean Kubernetes Cluster')
-        string(name: 'SONAR_HOST_URL', description: 'SonarQube Host URL')
-        string(name: 'SONAR_PROJECT_KEY', description: 'SonarQube Project Key')
-    }
-
     environment {
-        IMAGE_NAME = "${params.IMAGE_NAME}"
-        REGISTRY = "${params.REGISTRY}"
-        DO_CLUSTER = "${params.DO_CLUSTER}"
-        SONAR_HOST_URL = "${params.SONAR_HOST_URL}"
-        SONAR_PROJECT_KEY = "${params.SONAR_PROJECT_KEY}"
+        IMAGE_NAME = "htmx-demo"
+        REGISTRY = "registry.digitalocean.com/kube-app-registry"
+        DO_CLUSTER = "k8s-htmx"
+        SONAR_HOST_URL = "http://147.182.253.185:9000"
+        SONAR_PROJECT_KEY = "htmx-demo"
         VERSION_FILE = "version.txt"
         DEPLOYMENT_FILE = "deployment.yaml"
     }
