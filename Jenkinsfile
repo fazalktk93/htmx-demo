@@ -48,6 +48,15 @@ pipeline {
             }
         }
 
+
+        stage('Run Unit & Integration test') {
+
+            when { environment name: 'VERSION_CHANGED', value: 'true' }
+            steps {
+                sh 'mvn test'
+            }
+        }
+
         stage('SonarQube Analysis') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
