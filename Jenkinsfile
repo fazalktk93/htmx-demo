@@ -55,7 +55,6 @@ pipeline {
             steps {
                 sh ''' 
                     sudo mvn clean verify
-                    sudo chmod -R 777 /var/lib/jenkins/workspace/htmx-demo
                 '''
             }
         }
@@ -66,7 +65,7 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                            mvn clean sonar:sonar \
+                            sudo mvn sonar:sonar \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.host.url=${SONAR_HOST_URL} \
                             -Dsonar.token=${SONAR_TOKEN} \
