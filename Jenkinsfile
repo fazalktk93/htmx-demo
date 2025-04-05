@@ -53,7 +53,10 @@ pipeline {
 
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                sh 'SPRING_PROFILES_ACTIVE=test mvn clean test'
+                sh '''
+                    export SPRING_PROFILES_ACTIVE=test 
+                    mvn clean test
+                '''
             }
         }
 
