@@ -54,8 +54,9 @@ pipeline {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
                 sh '''
+                    whoami
                     export SPRING_PROFILES_ACTIVE=test 
-                    mvn test -Dlogging.file.name=logs/test.log
+                    sudo mvn test -Dlogging.file.name=logs/test.log
                 '''
             }
         }
