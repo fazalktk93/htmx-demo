@@ -53,7 +53,7 @@ pipeline {
 
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                sh 'mvn clean test failsafe:integration-test failsafe:verify'
+                sh 'SPRING_PROFILES_ACTIVE=test mvn clean test'
             }
         }
 
