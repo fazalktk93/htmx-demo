@@ -96,7 +96,7 @@ pipeline {
         stage('Build JAR') {
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'sudo mvn clean package -DskipTests'
             }
         }
 
