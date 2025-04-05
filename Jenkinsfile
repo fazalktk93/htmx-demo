@@ -55,7 +55,7 @@ pipeline {
             steps {
                 sh '''
                     export SPRING_PROFILES_ACTIVE=test 
-                    mvn clean test
+                    mvn test -Dlogging.file.name=logs/test.log
                 '''
             }
         }
