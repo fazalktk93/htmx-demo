@@ -53,7 +53,7 @@ pipeline {
 
             when { environment name: 'VERSION_CHANGED', value: 'true' }
             steps {
-                sh 'mvn test'
+                sh 'mvn clean test failsafe:integration-test failsafe:verify'
             }
         }
 
