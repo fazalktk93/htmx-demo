@@ -1,7 +1,9 @@
 version: 1.0
-image:
-  configuration:
-    runtime_environment_variables:
-      PORT: "8080"
+runtime: java17
+build:
+  commands:
+    - mvn clean install
+run:
+  command: java -jar target/*.jar
+  network:
     port: 8080
-    start_command: ""
